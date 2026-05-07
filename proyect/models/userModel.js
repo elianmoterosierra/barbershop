@@ -46,4 +46,18 @@ async function findById(id) {
     return result.recordset[0] || null;
 }
 
-module.exports = { findByEmail, createUser, findById };
+/**
+ * Obtiene solo el name y email de un usuario por su ID.
+ * Usado para enriquecer los datos antes de enviar al webhook de n8n.
+ * @param {number} id
+ * @returns {{ name: string, email: string } | null}
+ */
+async function getUserContactInfo(id) {
+    const pool = await getConnection();
+    const result = await pool.request()
+        .input("id", sql.Int, id)
+        .query("SELECT name, email FROM Users WHERE id = @id");
+    return result.recordset[0] || null;
+}
+
+module.exports = { findByEmail, createUser, findById, getUserContactInfo };

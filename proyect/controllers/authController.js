@@ -1,6 +1,50 @@
+const https = require("https");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { findByEmail, createUser } = require("../models/userModel");
+
+const N8N_BIENVENIDA = "https://elian222.app.n8n.cloud/webhook-test/reguistre_barberia";
+
+/**
+ * Envía los datos del nuevo usuario al webhook de bienvenida en n8n.
+ * No lanza excepción si falla — el registro ya fue guardado.
+ * @param {{ nombre: string, email: string, fecha_registro: string }} datos
+ */
+async function notificarBienvenida(datos) {
+    const payload = JSON.stringify({
+        nombre: datos.nombre,
+        email: datos.email,
+        fecha_registro: datos.fecha_registro,
+    });
+
+    const url = new URL(N8N_BIENVENIDA);
+    const options = {
+        hostname: url.hostname,
+        path: url.pathname,
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Content-Length": Buffer.byteLength(payload),
+        },
+    };
+
+    return new Promise((resolve) => {
+        const req = https.request(options, (res) => {
+            let data = "";
+            res.on("data", (chunk) => (data += chunk));
+            res.on("end", () => {
+                console.log(`✅ n8n bienvenida respondió [${res.statusCode}]:`, data);
+                resolve();
+            });
+        });
+        req.on("error", (err) => {
+            console.error("⚠️  n8n bienvenida falló (usuario ya registrado):", err.message);
+            resolve(); // no propagar el error
+        });
+        req.write(payload);
+        req.end();
+    });
+}
 
 /**
  * POST /api/registro
@@ -24,7 +68,15 @@ async function registro(req, res) {
         const hash = await bcrypt.hash(password, 10);
         const newUserId = await createUser(name.trim(), email.trim(), hash);
 
+        const fechaRegistro = new Date().toISOString();
         const token = jwt.sign({ id: newUserId, role: 'usuario' }, process.env.JWT_SECRET, { expiresIn: "1d" });
+
+        // ── Notificar bienvenida a n8n (no bloquea la respuesta) ────────────
+        notificarBienvenida({
+            nombre: name.trim(),
+            email: email.trim(),
+            fecha_registro: fechaRegistro,
+        }).catch(() => { }); // silenciado; ya se loguea dentro de notificarBienvenida
 
         res.status(201).json({
             ok: true,
@@ -32,7 +84,7 @@ async function registro(req, res) {
             user: {
                 nombre: name.trim(),
                 email: email.trim(),
-                miembro_desde: new Date().toISOString(),
+                miembro_desde: fechaRegistro,
                 role: 'usuario',
             },
         });

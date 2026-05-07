@@ -2,7 +2,7 @@
 create database barberia2
 use barberia2
 
-drop database barberia2
+
 
 
 
@@ -39,3 +39,7 @@ CREATE TABLE Citas (
 
 
 select * from Users
+
+ALTER TABLE Citas ADD email_enviado BIT DEFAULT 0;
+
+
