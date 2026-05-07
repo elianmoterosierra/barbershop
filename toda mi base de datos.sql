@@ -39,7 +39,3 @@ CREATE TABLE Citas (
 
 
 select * from Users
-
-drop table Users
-drop table Citas
-drop table Cortes

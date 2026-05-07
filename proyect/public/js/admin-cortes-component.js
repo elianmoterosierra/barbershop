@@ -4,7 +4,6 @@ class AdminCortesComponent extends HTMLElement {
         this.attachShadow({ mode: 'open' });
         this._cortes = [];
         this._editandoId = null;
-        this._tipoActual = 'normal'; // Track tipo reliably as instance property
     }
 
     connectedCallback() { this._render(); }
@@ -39,9 +38,10 @@ class AdminCortesComponent extends HTMLElement {
 
                         <!-- Selector de Tipo (primero para que controle el formulario) -->
                         <div class="tipo-tabs">
-                            <button type="button" class="tipo-tab active" id="tabNormal" data-tipo="normal">✂️ Servicio Normal</button>
-                            <button type="button" class="tipo-tab" id="tabVip" data-tipo="vip">👑 Paquete Especial</button>
+                            <button class="tipo-tab active" id="tabNormal" data-tipo="normal">✂️ Servicio Normal</button>
+                            <button class="tipo-tab" id="tabVip" data-tipo="vip">👑 Paquete Especial</button>
                         </div>
+                        <input type="hidden" id="tipo" value="normal">
 
                         <!-- Campo foto: solo visible en Normal -->
                         <div class="form-group" id="grupFoto">
@@ -191,9 +191,10 @@ class AdminCortesComponent extends HTMLElement {
         const sr = this.shadowRoot;
         sr.getElementById('fotoUrl').value = '';
         sr.getElementById('nombre').value = '';
+        sr.getElementById('tipo').value = 'normal';
         sr.getElementById('precio').value = '';
         sr.getElementById('descripcion').value = '';
-        this._tipoActual = 'normal';
+        sr.getElementById('tipo').value = 'normal';
         sr.getElementById('formTitle').textContent = '➕ Añadir nuevo servicio';
         sr.getElementById('btnGuardar').textContent = '💾 Guardar';
         sr.getElementById('btnCancelar').style.display = 'none';
@@ -234,10 +235,10 @@ class AdminCortesComponent extends HTMLElement {
     _renderCortes() {
         const sr = this.shadowRoot;
         const listaNorm = sr.getElementById('listaNormales');
-        const listaVip  = sr.getElementById('listaVip');
+        const listaVip = sr.getElementById('listaVip');
 
         const normales = this._cortes.filter(c => (c.tipo || 'normal') === 'normal');
-        const vips     = this._cortes.filter(c => c.tipo === 'vip');
+        const vips = this._cortes.filter(c => c.tipo === 'vip');
 
         // Helper para renderizar en un contenedor dado
         const renderList = (lista, items) => {
@@ -248,8 +249,8 @@ class AdminCortesComponent extends HTMLElement {
             lista.innerHTML = items.map(c => `
             <div class="corte-card" data-id="${c.id}">
                 ${c.foto_url
-                ? `<img class="corte-img" src="${c.foto_url}" alt="${c.nombre}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="corte-img-placeholder" style="display:none">✂️</div>`
-                : `<div class="corte-img-placeholder">✂️</div>`}
+                    ? `<img class="corte-img" src="${c.foto_url}" alt="${c.nombre}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="corte-img-placeholder" style="display:none">✂️</div>`
+                    : `<div class="corte-img-placeholder">✂️</div>`}
                 <div class="corte-info">
                     <p class="corte-nombre">${c.nombre}</p>
                     <p class="corte-precio">$${Number(c.precio).toFixed(2)}</p>
@@ -280,7 +281,7 @@ class AdminCortesComponent extends HTMLElement {
         sr.getElementById('fotoUrl').value = corte.foto_url || '';
         sr.getElementById('nombre').value = corte.nombre;
         const tipoVal = corte.tipo || 'normal';
-        this._tipoActual = tipoVal;
+        sr.getElementById('tipo').value = tipoVal;
         // Sync tabs
         sr.querySelectorAll('.tipo-tab').forEach(t => t.classList.toggle('active', t.dataset.tipo === tipoVal));
         // Show/hide foto field
@@ -346,7 +347,7 @@ class AdminCortesComponent extends HTMLElement {
         const sr = this.shadowRoot;
         const msg = sr.getElementById('msgForm');
         const nombre = sr.getElementById('nombre').value.trim();
-        const tipo = this._tipoActual;  // Read from instance property, not DOM
+        const tipo = sr.getElementById('tipo').value;
         const precio = sr.getElementById('precio').value;
         const descripcion = sr.getElementById('descripcion').value.trim();
         const foto_url = sr.getElementById('fotoUrl').value.trim();
@@ -399,7 +400,7 @@ class AdminCortesComponent extends HTMLElement {
         sr.querySelectorAll('.tipo-tab').forEach(tab => {
             tab.addEventListener('click', () => {
                 const tipo = tab.dataset.tipo;
-                this._tipoActual = tipo;  // Store in instance, not DOM
+                sr.getElementById('tipo').value = tipo;
                 sr.querySelectorAll('.tipo-tab').forEach(t => t.classList.toggle('active', t === tab));
                 // Mostrar/ocultar foto
                 sr.getElementById('grupFoto').style.display = tipo === 'vip' ? 'none' : '';
