@@ -24,7 +24,7 @@ let _connectionMethod = null;
  * Usa named pipe para conectar al SQL Server local sin credenciales.
  */
 function getWindowsAuthConfig() {
-    const db = process.env.DB_NAME || "barberia";
+    const db = process.env.DB_NAME || "barberia2";
     const instance = process.env.DB_INSTANCE_WINDOWS || "SQLEXPRESS";
     const driver = "ODBC Driver 17 for SQL Server";
     const namedPipe = String.raw`\\.\pipe\MSSQL$${instance}\sql\query`;
@@ -45,7 +45,7 @@ function getWindowsAuthConfig() {
  * Fallback si Windows Auth no está disponible.
  */
 function getSqlAuthConfig() {
-    const db = process.env.DB_NAME || "barberia";
+    const db = process.env.DB_NAME || "barberia2";
     const server = process.env.DB_SERVER || "localhost";
     const port = process.env.DB_PORT || "49814";
     const user = process.env.DB_USER || "sa";

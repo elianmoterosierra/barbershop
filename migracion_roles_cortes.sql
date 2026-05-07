@@ -86,3 +86,6 @@ GO
 SELECT id, name, email, role, fecha_registro FROM Users;
 SELECT * FROM Cortes;
 GO
+
+
+drop table cortes

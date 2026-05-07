@@ -1,7 +1,8 @@
 ﻿
-create database barberia
-use barberia
+create database barberia2
+use barberia2
 
+drop database barberia2
 
 
 
@@ -38,3 +39,7 @@ CREATE TABLE Citas (
 
 
 select * from Users
+
+drop table Users
+drop table Citas
+drop table Cortes
