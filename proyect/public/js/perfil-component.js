@@ -295,7 +295,7 @@ class PerfilComponent extends HTMLElement {
         const token = localStorage.getItem('token');
         if (token) {
             try {
-                const res = await fetch('http://localhost:3000/api/miscitas', {
+                const res = await fetch('/api/citas/miscitas', {
                     headers: { 'Authorization': token }
                 });
                 const data = await res.json();
@@ -732,7 +732,10 @@ class PerfilComponent extends HTMLElement {
                     <!-- Botones -->
                     <div class="btn-group">
                         <button class="btn btn-primary" id="btnEditarPerfil">✏️ Editar Perfil</button>
-                        <button class="btn btn-secondary" id="btnCerrarSesion">Cerrar Sesión</button>
+                        <button class="btn btn-secondary" id="btnVerCitas">📋 Ver Mis Citas</button>
+                    </div>
+                    <div style="margin-top:10px;">
+                        <button class="btn btn-secondary" id="btnCerrarSesion" style="width:100%;">Cerrar Sesión</button>
                     </div>
 
                 </div>
@@ -867,6 +870,11 @@ class PerfilComponent extends HTMLElement {
         } else {
             sr.getElementById('btnEditarPerfil').addEventListener('click', () => {
                 this.dispatchEvent(new CustomEvent('editar-perfil', { bubbles: true, composed: true }));
+            });
+
+            sr.getElementById('btnVerCitas').addEventListener('click', () => {
+                this.close();
+                this.dispatchEvent(new CustomEvent('abrir-mis-citas', { bubbles: true, composed: true }));
             });
 
             sr.getElementById('btnCerrarSesion').addEventListener('click', () => {

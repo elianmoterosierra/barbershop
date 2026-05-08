@@ -371,6 +371,68 @@ class ReservaComponent extends HTMLElement {
                     color: #fca5a5;
                 }
 
+                /* ===== PANELES DE PAGO ===== */
+                .pago-panel {
+                    display: none;
+                    margin-bottom: 18px;
+                }
+                .pago-panel.visible {
+                    display: block;
+                    animation: fadeSlide 0.3s ease;
+                }
+
+                .pago-banco-card {
+                    background: rgba(212,175,55,0.06);
+                    border: 1px solid rgba(212,175,55,0.25);
+                    border-radius: 12px;
+                    padding: 16px 18px;
+                    margin-bottom: 16px;
+                }
+                .pago-banco-row {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    font-family: 'Manrope', sans-serif;
+                    font-size: 0.88rem;
+                    color: #94a3b8;
+                    padding: 5px 0;
+                    border-bottom: 1px solid rgba(255,255,255,0.05);
+                }
+                .pago-banco-row:last-child { border-bottom: none; }
+                .pago-banco-row span:last-child { color: #f6f6f8; font-weight: 600; }
+
+                .pago-efectivo-msg {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    background: rgba(52,211,153,0.08);
+                    border: 1px solid rgba(52,211,153,0.25);
+                    border-radius: 10px;
+                    padding: 14px 16px;
+                    font-family: 'Manrope', sans-serif;
+                    font-size: 0.9rem;
+                    color: #6ee7b7;
+                    margin-bottom: 4px;
+                }
+
+                .cvv-wrapper { position: relative; }
+                .cvv-wrapper input { padding-right: 40px; }
+                .cvv-toggle {
+                    position: absolute;
+                    right: 10px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    background: none;
+                    border: none;
+                    cursor: pointer;
+                    font-size: 1rem;
+                    color: #64748b;
+                    padding: 0;
+                    line-height: 1;
+                    transition: color 0.2s;
+                }
+                .cvv-toggle:hover { color: #D4AF37; }
+
                 /* ===== RESPONSIVE ===== */
                 @media (max-width: 500px) {
                     .modal-box { padding: 30px 20px 24px; }
@@ -490,6 +552,58 @@ class ReservaComponent extends HTMLElement {
                         </div>
                     </div>
 
+                    <!-- Panel: Tarjeta -->
+                    <div class="pago-panel" id="panelTarjeta">
+                        <div class="form-group">
+                            <label for="cardNumber">Número de tarjeta</label>
+                            <input type="text" id="cardNumber" placeholder="XXXX XXXX XXXX XXXX"
+                                   maxlength="19" inputmode="numeric" autocomplete="cc-number" />
+                        </div>
+                        <div class="form-group">
+                            <label for="cardName">Nombre en la tarjeta</label>
+                            <input type="text" id="cardName" placeholder="Como aparece en la tarjeta"
+                                   autocomplete="cc-name" />
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="cardExpiry">Vencimiento</label>
+                                <input type="text" id="cardExpiry" placeholder="MM/YY"
+                                       maxlength="5" inputmode="numeric" autocomplete="cc-exp" />
+                            </div>
+                            <div class="form-group">
+                                <label for="cardCvv">CVV</label>
+                                <div class="cvv-wrapper">
+                                    <input type="password" id="cardCvv" placeholder="•••"
+                                           maxlength="4" inputmode="numeric" autocomplete="cc-csc" />
+                                    <button type="button" class="cvv-toggle" id="cvvToggle" title="Mostrar/Ocultar CVV">👁</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Panel: Transferencia -->
+                    <div class="pago-panel" id="panelTransferencia">
+                        <div class="pago-banco-card">
+                            <div class="pago-banco-row"><span>Banco</span><span>Banreservas</span></div>
+                            <div class="pago-banco-row"><span>Cuenta</span><span>123-456789-0</span></div>
+                            <div class="pago-banco-row"><span>Titular</span><span>Classic Barbers</span></div>
+                            <div class="pago-banco-row"><span>RNC/Cédula</span><span>001-0000000-0</span></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="refTransferencia">Número de referencia</label>
+                            <input type="text" id="refTransferencia"
+                                   placeholder="Ingresa o sube el # de referencia" />
+                        </div>
+                    </div>
+
+                    <!-- Panel: Efectivo -->
+                    <div class="pago-panel visible" id="panelEfectivo">
+                        <div class="pago-efectivo-msg">
+                            <span style="font-size:1.5rem;">💵</span>
+                            <span>Paga en el local al llegar. Tu cita quedará reservada de inmediato.</span>
+                        </div>
+                    </div>
+
                     <div class="msg-cobro" id="msgCobro"></div>
 
                     <button class="btn-submit" id="btnConfirmarPago">💳 Confirmar Pago</button>
@@ -579,6 +693,14 @@ class ReservaComponent extends HTMLElement {
         sr.getElementById('stepDot1').className = 'step-dot active';
         sr.getElementById('stepDot2').className = 'step-dot';
         sr.getElementById('stepLine').className = 'step-line';
+        // Resetear paneles de pago y radio buttons
+        const efectivo = sr.getElementById('pagoEfectivo');
+        if (efectivo) efectivo.checked = true;
+        this._mostrarPanelPago('efectivo');
+        // Limpiar campos de tarjeta y transferencia
+        ['cardNumber','cardName','cardExpiry','cardCvv','refTransferencia']
+            .forEach(id => { const el = sr.getElementById(id); if (el) el.value = ''; });
+        sr.getElementById('btnConfirmarPago').disabled = false;
     }
 
     /** Muestra el panel de cobro con los datos del formulario */
@@ -605,9 +727,61 @@ class ReservaComponent extends HTMLElement {
         sr.getElementById('stepLine').className = 'step-line done';
     }
 
+    /** Muestra el panel de pago correspondiente al método */
+    _mostrarPanelPago(metodo) {
+        const sr = this.shadowRoot;
+        ['panelTarjeta','panelTransferencia','panelEfectivo'].forEach(id => {
+            sr.getElementById(id).classList.remove('visible');
+        });
+        const map = { tarjeta: 'panelTarjeta', transferencia: 'panelTransferencia', efectivo: 'panelEfectivo' };
+        if (map[metodo]) sr.getElementById(map[metodo]).classList.add('visible');
+        // Habilitar/deshabilitar botón confirmar
+        this._actualizarBtnPago(metodo);
+    }
+
+    /** Habilita o deshabilita el botón de confirmar según el método */
+    _actualizarBtnPago(metodo) {
+        const sr = this.shadowRoot;
+        const btn = sr.getElementById('btnConfirmarPago');
+        if (metodo === 'transferencia') {
+            const ref = (sr.getElementById('refTransferencia')?.value || '').trim();
+            btn.disabled = ref.length === 0;
+        } else {
+            btn.disabled = false;
+        }
+    }
+
+    /** Valida el formulario de tarjeta; retorna mensaje de error o null si OK */
+    _validarTarjeta() {
+        const sr = this.shadowRoot;
+        const num = (sr.getElementById('cardNumber').value || '').replace(/\s/g, '');
+        const nombre = (sr.getElementById('cardName').value || '').trim();
+        const expiry = (sr.getElementById('cardExpiry').value || '').trim();
+        const cvv = (sr.getElementById('cardCvv').value || '').trim();
+
+        if (num.length !== 16 || !/^\d{16}$/.test(num))
+            return '⚠️ El número de tarjeta debe tener exactamente 16 dígitos.';
+        if (!nombre)
+            return '⚠️ El nombre en la tarjeta es obligatorio.';
+        if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(expiry)) {
+            return '⚠️ La fecha de vencimiento debe tener formato MM/YY.';
+        } else {
+            const [mes, anio] = expiry.split('/').map(Number);
+            const ahora = new Date();
+            const expDate = new Date(2000 + anio, mes - 1, 1);
+            if (expDate < new Date(ahora.getFullYear(), ahora.getMonth(), 1))
+                return '⚠️ La tarjeta está vencida.';
+        }
+        if (!/^\d{3,4}$/.test(cvv))
+            return '⚠️ El CVV debe tener 3 o 4 dígitos.';
+        return null;
+    }
+
     _bindEvents() {
+        const sr = this.shadowRoot;
+
         // Botón X
-        this.shadowRoot.getElementById('btnCerrar').addEventListener('click', () => this.close());
+        sr.getElementById('btnCerrar').addEventListener('click', () => this.close());
 
         // Clic fuera del modal-box
         this.addEventListener('click', (e) => {
@@ -618,10 +792,43 @@ class ReservaComponent extends HTMLElement {
         this._onKeydown = (e) => { if (e.key === 'Escape') this.close(); };
         document.addEventListener('keydown', this._onKeydown);
 
+        // Cambio de método de pago → mostrar panel dinámico
+        sr.querySelectorAll('input[name="metodoPago"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                this._mostrarPanelPago(e.target.value);
+            });
+        });
+
+        // Máscara: número de tarjeta (XXXX XXXX XXXX XXXX)
+        sr.getElementById('cardNumber').addEventListener('input', (e) => {
+            let val = e.target.value.replace(/\D/g, '').slice(0, 16);
+            e.target.value = val.match(/.{1,4}/g)?.join(' ') ?? val;
+        });
+
+        // Máscara: fecha vencimiento (MM/YY)
+        sr.getElementById('cardExpiry').addEventListener('input', (e) => {
+            let val = e.target.value.replace(/\D/g, '').slice(0, 4);
+            if (val.length >= 3) val = val.slice(0,2) + '/' + val.slice(2);
+            e.target.value = val;
+        });
+
+        // Toggle visibilidad CVV
+        sr.getElementById('cvvToggle').addEventListener('click', () => {
+            const cvv = sr.getElementById('cardCvv');
+            const btn = sr.getElementById('cvvToggle');
+            if (cvv.type === 'password') { cvv.type = 'text'; btn.textContent = '🙈'; }
+            else { cvv.type = 'password'; btn.textContent = '👁'; }
+        });
+
+        // Referencia transferencia → habilitar/deshabilitar botón
+        sr.getElementById('refTransferencia').addEventListener('input', () => {
+            const metodo = sr.querySelector('input[name="metodoPago"]:checked')?.value ?? 'efectivo';
+            this._actualizarBtnPago(metodo);
+        });
+
         // PASO 1 → PASO 2: validar formulario y mostrar cobro
-        this.shadowRoot.getElementById('formCita').addEventListener('submit', (e) => {
+        sr.getElementById('formCita').addEventListener('submit', (e) => {
             e.preventDefault();
-            const sr = this.shadowRoot;
             const msg = sr.getElementById('mensajeCita');
             const nombre = sr.getElementById('nombreCliente').value.trim();
             const servSel = sr.getElementById('servicio');
@@ -636,25 +843,38 @@ class ReservaComponent extends HTMLElement {
                 return;
             }
 
-            // Guardar datos para usarlos en el cobro
             this._datosCita = { nombre, servicio, servicioVal, hora, fecha };
             this._irAPaso2(this._datosCita);
         });
 
         // Botón Volver al paso 1
-        this.shadowRoot.getElementById('btnVolver').addEventListener('click', () => {
-            this._irAPaso1();
-        });
+        sr.getElementById('btnVolver').addEventListener('click', () => this._irAPaso1());
 
-        // PASO 2: Confirmar pago → enviar al servidor
-        this.shadowRoot.getElementById('btnConfirmarPago').addEventListener('click', async () => {
-            const sr = this.shadowRoot;
+        // PASO 2: Confirmar pago → validar y enviar al servidor
+        sr.getElementById('btnConfirmarPago').addEventListener('click', async () => {
             const msg = sr.getElementById('msgCobro');
             const metodoPago = sr.querySelector('input[name="metodoPago"]:checked')?.value ?? 'efectivo';
             const { nombre, servicio, servicioVal, hora, fecha } = this._datosCita;
             const btnPagar = sr.getElementById('btnConfirmarPago');
 
-            // ← NUEVO: verificar que el usuario esté logueado
+            // Validaciones específicas por método
+            if (metodoPago === 'tarjeta') {
+                const errTarjeta = this._validarTarjeta();
+                if (errTarjeta) {
+                    msg.className = 'msg-cobro error';
+                    msg.textContent = errTarjeta;
+                    return;
+                }
+            }
+            if (metodoPago === 'transferencia') {
+                const ref = (sr.getElementById('refTransferencia').value || '').trim();
+                if (!ref) {
+                    msg.className = 'msg-cobro error';
+                    msg.textContent = '⚠️ Ingresa el número de referencia de la transferencia.';
+                    return;
+                }
+            }
+
             const token = localStorage.getItem('token');
             if (!token) {
                 msg.className = 'msg-cobro error';
@@ -665,19 +885,30 @@ class ReservaComponent extends HTMLElement {
             btnPagar.disabled = true;
             btnPagar.textContent = 'Procesando...';
 
+            // Construir payload
+            const payload = {
+                name: nombre,
+                service: servicioVal,
+                time: hora,
+                date: fecha,
+                metodoPago
+            };
+            if (metodoPago === 'tarjeta') {
+                const num = sr.getElementById('cardNumber').value.replace(/\s/g, '');
+                payload.ultimos4 = num.slice(-4);
+            }
+            if (metodoPago === 'transferencia') {
+                payload.referencia = (sr.getElementById('refTransferencia').value || '').trim();
+            }
+
             try {
-                const respuesta = await fetch('http://localhost:3000/api/agendar', {
+                const respuesta = await fetch('/api/citas/agendar', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': token       // ← envía el token
+                        'Authorization': token
                     },
-                    body: JSON.stringify({
-                        name: nombre,
-                        service: servicioVal,        // ← valor limpio sin emojis (ej: "corte", "barba")
-                        time: hora,
-                        date: fecha
-                    })
+                    body: JSON.stringify(payload)
                 });
 
                 const data = await respuesta.json();

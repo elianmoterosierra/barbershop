@@ -1,4 +1,4 @@
-﻿const { getConnection, sql } = require("../../db");
+const { getConnection, sql } = require("../../db");
 
 /**
  * Inserta una nueva cita en la base de datos.
@@ -6,16 +6,19 @@
  * @param {{id_usuario: number, service: string, date: string, time: string}} datos
  */
 async function crearCita(datos) {
-    const { id_usuario, service, date, time } = datos;
+    const { id_usuario, service, date, time, metodoPago, referencia, ultimos4 } = datos;
     const pool = await getConnection();
     await pool.request()
-        .input("id_usuario", sql.Int,     id_usuario)
-        .input("service",    sql.VarChar, service)
-        .input("date",       sql.Date,    date)
-        .input("time",       sql.Time,    time)
+        .input("id_usuario",   sql.Int,        id_usuario)
+        .input("service",      sql.VarChar,    service)
+        .input("date",         sql.Date,       date)
+        .input("time",         sql.Time,       time)
+        .input("metodo_pago",  sql.VarChar,    metodoPago || 'efectivo')
+        .input("referencia",   sql.VarChar,    referencia || null)
+        .input("ultimos4",     sql.VarChar,    ultimos4 || null)
         .query(`
-            INSERT INTO Citas (id_usuario, service, date, time)
-            VALUES (@id_usuario, @service, @date, @time)
+            INSERT INTO Citas (id_usuario, service, date, time, metodo_pago, referencia, ultimos4)
+            VALUES (@id_usuario, @service, @date, @time, @metodo_pago, @referencia, @ultimos4)
         `);
 }
 
@@ -49,17 +52,19 @@ async function getMisCitas(id_usuario) {
 /**
  * Obtiene todas las citas de un usuario con sus detalles.
  * @param {number} id_usuario
- * @returns {Array<{id: number, service: string, date: string, time: string, status: string}>}
+ * @returns {Array}
  */
 async function getCitasPorUsuario(id_usuario) {
     const pool = await getConnection();
     const result = await pool.request()
         .input("id_usuario", sql.Int, id_usuario)
         .query(`
-            SELECT id, service, date, time, status, created_at
+            SELECT id, service, date, time, status, created_at,
+                   metodo_pago, referencia, ultimos4,
+                   calificacion, resena, fecha_resena
             FROM Citas
             WHERE id_usuario = @id_usuario
-            ORDER BY date ASC, time ASC
+            ORDER BY created_at DESC
         `);
     return result.recordset;
 }
@@ -81,4 +86,51 @@ async function cancelarCita(id_cita, id_usuario) {
         `);
 }
 
-module.exports = { crearCita, getMisCitas, getCitasPorUsuario, cancelarCita };
+/**
+ * Obtiene una cita por ID.
+ * @param {number} id_cita
+ * @returns {Object|null}
+ */
+async function getCitaPorId(id_cita) {
+    const pool = await getConnection();
+    const result = await pool.request()
+        .input("id", sql.Int, id_cita)
+        .query(`
+            SELECT id, id_usuario, service, date, time, status, 
+                   metodo_pago, referencia, ultimos4, created_at, 
+                   calificacion, resena, fecha_resena
+            FROM Citas
+            WHERE id = @id
+        `);
+    return result.recordset[0] || null;
+}
+
+/**
+ * Guarda la calificación y reseña de una cita.
+ * @param {number} id_cita
+ * @param {number} calificacion
+ * @param {string} resena
+ */
+async function guardarCalificacion(id_cita, calificacion, resena) {
+    const pool = await getConnection();
+    await pool.request()
+        .input("id", sql.Int, id_cita)
+        .input("calificacion", sql.TinyInt, calificacion)
+        .input("resena", sql.NVarChar(500), resena || null)
+        .query(`
+            UPDATE Citas
+            SET calificacion = @calificacion,
+                resena = @resena,
+                fecha_resena = GETDATE()
+            WHERE id = @id
+        `);
+}
+
+module.exports = { 
+    crearCita, 
+    getMisCitas, 
+    getCitasPorUsuario, 
+    cancelarCita,
+    getCitaPorId,
+    guardarCalificacion
+};

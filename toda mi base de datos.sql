@@ -37,9 +37,25 @@ CREATE TABLE Citas (
         REFERENCES Users(id) ON UPDATE CASCADE ON DELETE CASCADE
 );
 
+ALTER TABLE Citas
+ADD metodo_pago VARCHAR(20) NOT NULL DEFAULT 'efectivo'
+                CONSTRAINT CHK_Citas_MetodoPago 
+                CHECK (metodo_pago IN ('efectivo','tarjeta','transferencia'));
+
+ALTER TABLE Citas
+ADD referencia VARCHAR(50) NULL;
+
+ALTER TABLE Citas
+ADD ultimos4 CHAR(4) NULL;
+
 
 select * from Users
+select * from Citas
+select * from Cortes
 
 ALTER TABLE Citas ADD email_enviado BIT DEFAULT 0;
+
+DELETE FROM Users
+WHERE id = 5;
 
 

@@ -22,7 +22,7 @@ app.use("/js", express.static(path.join(__dirname, "proyect", "public", "js")));
 
 // ─── Rutas ───────────────────────────────────────────────────────────────────
 app.use("/api", authRoutes);   // POST /api/registro  |  POST /api/login
-app.use("/api", citasRoutes);  // POST /api/agendar   |  GET  /api/miscitas
+app.use("/api/citas", citasRoutes);  // POST /api/citas/agendar | GET /api/citas/miscitas | GET /api/citas/mis-citas
 app.use("/api", cortesRoutes); // GET /api/cortes | POST /api/cortes | PUT /api/cortes/:id | DELETE /api/cortes/:id
 app.use("/api", usersRoutes);  // GET /api/usuarios | PUT /api/usuarios/:id/role
 

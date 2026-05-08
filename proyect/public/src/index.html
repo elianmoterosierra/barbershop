@@ -34,6 +34,7 @@
             <a href="services.html">Servicios</a>
             <a href="nosotros.html">Nosotros</a>
             <a href="contacto.html">Contacto</a>
+            <a href="#" onclick="abrirMisCitas(event)">Mis Citas</a>
         </nav>
         <button class="hamburger" aria-label="Abrir menú">
             <span></span><span></span><span></span>
@@ -220,6 +221,8 @@
     <reserva-component id="modalReserva"></reserva-component>
     <admin-cortes-component id="modalAdminCortes"></admin-cortes-component>
     <admin-users-component id="modalAdminUsers"></admin-users-component>
+    <calificar-citas id="modalCalificar"></calificar-citas>
+    <mis-citas-component id="modalMisCitas"></mis-citas-component>
 
     <!-- Admin floating button (hidden by default) -->
     <button class="admin-fab" id="btnAdminCortes" style="display:none;" onclick="abrirAdminCortes()">
@@ -263,6 +266,8 @@
     <script defer src="../js/reserva-component.js"></script>
     <script defer src="../js/admin-cortes-component.js"></script>
     <script defer src="../js/admin-users-component.js"></script>
+    <script defer src="../js/calificar-citas.js"></script>
+    <script defer src="../js/mis-citas-component.js"></script>
     <script defer src="../js/animations.js"></script>
 
     <script>
@@ -280,6 +285,29 @@
         function abrirAdminUsers() {
             document.getElementById('modalAdminUsers').open();
         }
+        function abrirMisCitas(e) {
+            if (e) e.preventDefault();
+            document.getElementById('modalMisCitas').open();
+        }
+
+        // Eventos del componente mis-citas
+        document.addEventListener('DOMContentLoaded', () => {
+            const misCitas = document.getElementById('modalMisCitas');
+            misCitas.addEventListener('abrir-calificar', (e) => {
+                misCitas.close();
+                const calificar = document.getElementById('modalCalificar');
+                calificar.open(e.detail.id, e.detail.service, e.detail.date);
+                calificar.addEventListener('cita-calificada', () => misCitas.open(), { once: true });
+            });
+            misCitas.addEventListener('abrir-reserva', () => {
+                document.getElementById('modalReserva').open();
+            });
+
+            // Abre mis-citas desde el botón dentro de perfil-component
+            document.addEventListener('abrir-mis-citas', () => {
+                document.getElementById('modalMisCitas').open();
+            });
+        });
 
         // ── Mostrar/ocultar botón admin según rol ──
         function checkAdminVisibility() {
