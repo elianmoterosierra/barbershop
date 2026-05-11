@@ -58,4 +58,6 @@ ALTER TABLE Citas ADD email_enviado BIT DEFAULT 0;
 DELETE FROM Users
 WHERE id = 5;
 
+drop table Citas
+
 

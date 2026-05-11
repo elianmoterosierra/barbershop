@@ -1,3 +1,9 @@
+const BARBERO_AVATARS = {
+    'Julián Vega':     'https://img.freepik.com/foto-gratis/retrato-estilista-barbudo-que-mira-camara_23-2147839834.jpg?semt=ais_hybrid&w=740&q=80',
+    'Antony Martinez': 'https://img.freepik.com/foto-gratis/retrato-estilista-masculino-mirando-camara_23-2147839829.jpg?semt=ais_user_personalization&w=740&q=80',
+    'Marcos Thorne':   'https://img.freepik.com/foto-gratis/retrato-peluquero-masculino-maquinilla-afeitar_23-2147839800.jpg?semt=ais_hybrid&w=740&q=80'
+};
+
 class MisCitasComponent extends HTMLElement {
     constructor() {
         super();
@@ -79,6 +85,11 @@ class MisCitasComponent extends HTMLElement {
             /* BTN CALIFICAR */
             .btn-calificar { margin-top:10px; padding:7px 16px; background:linear-gradient(135deg,#D4AF37,#b8922e); color:#111621; border:none; border-radius:8px; font-family:'Manrope',sans-serif; font-size:.8rem; font-weight:700; cursor:pointer; transition:transform .15s,box-shadow .2s; }
             .btn-calificar:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(212,175,55,.3); }
+
+            /* BARBERO EN CITA */
+            .cita-barbero { display:flex; align-items:center; gap:8px; margin-top:7px; }
+            .barbero-mini { width:26px; height:26px; border-radius:50%; object-fit:cover; flex-shrink:0; border:1px solid rgba(212,175,55,.3); }
+            .barbero-nombre { font-family:'Manrope',sans-serif; font-size:.76rem; color:#94a3b8; }
 
             /* RATING VIEW */
             .rating-view { flex:1; overflow-y:auto; scrollbar-width:thin; scrollbar-color:#D4AF37 transparent; }
@@ -227,8 +238,17 @@ class MisCitasComponent extends HTMLElement {
         if (!v) return '';
         const d = new Date(v);
         let h, m;
-        if (!isNaN(d.getTime())) { h = d.getHours(); m = d.getMinutes(); }
-        else { const p = String(v).split(':'); h = parseInt(p[0])||0; m = parseInt(p[1])||0; }
+        // Si es un objeto Date válido (como el ISO que manda el JSON), usamos métodos UTC
+        // para que 12:30 se vea como 12:30 sin importar la zona horaria del navegador.
+        if (!isNaN(d.getTime())) { 
+            h = d.getUTCHours(); 
+            m = d.getUTCMinutes(); 
+        }
+        else { 
+            const p = String(v).split(':'); 
+            h = parseInt(p[0])||0; 
+            m = parseInt(p[1])||0; 
+        }
         const ampm = h >= 12 ? 'PM' : 'AM';
         const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
         return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
@@ -265,6 +285,17 @@ class MisCitasComponent extends HTMLElement {
         try {
             const res  = await fetch('/api/citas/mis-citas', { headers: { Authorization: token } });
             const data = await res.json();
+
+            // Token expirado o inválido → limpiar sesión y avisar
+            if (res.status === 401 || res.status === 403) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('zhola_user');
+                loading.classList.add('hidden');
+                error.classList.remove('hidden');
+                error.querySelector('p').textContent = '🔒 Tu sesión expiró. Por favor inicia sesión de nuevo.';
+                return;
+            }
+
             loading.classList.add('hidden');
 
             // Server returned an error response
@@ -288,6 +319,14 @@ class MisCitasComponent extends HTMLElement {
 
                 const detalle = c.metodo_pago
                     ? `<div class="cita-detalles">${this._formatearMetodo(c.metodo_pago)}</div>` : '';
+
+                const barberoHtml = c.barbero ? (() => {
+                    const avatarUrl = BARBERO_AVATARS[c.barbero];
+                    const imgTag = avatarUrl
+                        ? `<img class="barbero-mini" src="${avatarUrl}" alt="${c.barbero}" onerror="this.style.display='none'">`
+                        : '';
+                    return `<div class="cita-barbero">${imgTag}<span class="barbero-nombre">✂️ ${c.barbero}</span></div>`;
+                })() : '';
 
                 let reviewSection = '';
                 if (esComp && !sinCal) {
@@ -314,6 +353,7 @@ class MisCitasComponent extends HTMLElement {
                             </div>
                             <span class="cita-status ${stCls}">${stTxt}</span>
                         </div>
+                        ${barberoHtml}
                         ${detalle}
                         ${reviewSection}
                         ${btnCal}

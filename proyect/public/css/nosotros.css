@@ -106,6 +106,7 @@
     padding: var(--section-padding) 5%;
     background: linear-gradient(180deg, var(--dark) 0%, var(--dark-surface) 100%);
     position: relative;
+    font-family: Arial, Helvetica, sans-serif;
 }
 
 .team::before {
@@ -126,6 +127,7 @@
     gap: 40px;
     max-width: var(--container-width);
     margin: 0 auto;
+    font-family: Arial, Helvetica, sans-serif;
 }
 
 .team-card {
@@ -207,18 +209,18 @@
     .hero-nosotros {
         padding: 100px 20px 40px;
     }
-    
+
     .hero-cta {
         flex-direction: column;
         width: 100%;
     }
-    
-    .hero-cta .btn-primary, 
+
+    .hero-cta .btn-primary,
     .hero-cta .btn-outline {
         width: 100%;
         max-width: 300px;
     }
-    
+
     .team-card {
         padding: 30px 20px;
     }

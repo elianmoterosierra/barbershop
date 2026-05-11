@@ -433,11 +433,57 @@ class ReservaComponent extends HTMLElement {
                 }
                 .cvv-toggle:hover { color: #D4AF37; }
 
+                /* ===== SELECTOR BARBERO ===== */
+                .barberos-grid {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 10px;
+                    margin-top: 4px;
+                }
+                .barbero-opcion input[type="radio"] { display: none; }
+                .barbero-opcion label {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 14px 8px 10px;
+                    background: rgba(255,255,255,0.04);
+                    border: 2px solid rgba(255,255,255,0.1);
+                    border-radius: 12px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    text-transform: none;
+                    letter-spacing: 0;
+                    font-size: 0.78rem;
+                    font-weight: 600;
+                    color: #94a3b8;
+                }
+                .barbero-opcion label:hover { border-color: rgba(212,175,55,0.4); color: #f6f6f8; }
+                .barbero-opcion input[type="radio"]:checked + label {
+                    border-color: #D4AF37;
+                    background: rgba(212,175,55,0.10);
+                    color: #D4AF37;
+                }
+                .barbero-avatar {
+                    width: 58px;
+                    height: 58px;
+                    border-radius: 50%;
+                    object-fit: cover;
+                    filter: grayscale(55%);
+                    transition: filter 0.2s, border 0.2s;
+                    border: 2px solid transparent;
+                }
+                .barbero-opcion input[type="radio"]:checked + label .barbero-avatar {
+                    filter: grayscale(0%);
+                    border-color: #D4AF37;
+                }
+
                 /* ===== RESPONSIVE ===== */
                 @media (max-width: 500px) {
                     .modal-box { padding: 30px 20px 24px; }
                     .form-row { grid-template-columns: 1fr; }
                     .metodos-grid { grid-template-columns: repeat(3,1fr); }
+                    .barberos-grid { grid-template-columns: repeat(3, 1fr); }
                 }
             </style>
 
@@ -477,6 +523,33 @@ class ReservaComponent extends HTMLElement {
                         <select id="servicio" name="servicio" required>
                             <option value="" disabled selected>Cargando servicios...</option>
                         </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Barbero</label>
+                        <div class="barberos-grid" id="barberosGrid">
+                            <div class="barbero-opcion">
+                                <input type="radio" name="barbero" id="bJulian" value="Julián Vega">
+                                <label for="bJulian">
+                                    <img class="barbero-avatar" src="https://img.freepik.com/foto-gratis/retrato-estilista-barbudo-que-mira-camara_23-2147839834.jpg?semt=ais_hybrid&w=740&q=80" alt="Julián Vega">
+                                    <span>Julián Vega</span>
+                                </label>
+                            </div>
+                            <div class="barbero-opcion">
+                                <input type="radio" name="barbero" id="bAntony" value="Antony Martinez">
+                                <label for="bAntony">
+                                    <img class="barbero-avatar" src="https://img.freepik.com/foto-gratis/retrato-estilista-masculino-mirando-camara_23-2147839829.jpg?semt=ais_user_personalization&w=740&q=80" alt="Antony Martinez">
+                                    <span>Antony Martinez</span>
+                                </label>
+                            </div>
+                            <div class="barbero-opcion">
+                                <input type="radio" name="barbero" id="bMarcos" value="Marcos Thorne">
+                                <label for="bMarcos">
+                                    <img class="barbero-avatar" src="https://img.freepik.com/foto-gratis/retrato-peluquero-masculino-maquinilla-afeitar_23-2147839800.jpg?semt=ais_hybrid&w=740&q=80" alt="Marcos Thorne">
+                                    <span>Marcos Thorne</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="form-row">
@@ -529,6 +602,7 @@ class ReservaComponent extends HTMLElement {
                         <div class="resumen-row"><span>Servicio</span><span id="rServicio">—</span></div>
                         <div class="resumen-row"><span>Fecha</span><span id="rFecha">—</span></div>
                         <div class="resumen-row"><span>Hora</span><span id="rHora">—</span></div>
+                        <div class="resumen-row"><span>Barbero</span><span id="rBarbero">—</span></div>
                     </div>
 
                     <div class="resumen-total">
@@ -697,6 +771,8 @@ class ReservaComponent extends HTMLElement {
         const efectivo = sr.getElementById('pagoEfectivo');
         if (efectivo) efectivo.checked = true;
         this._mostrarPanelPago('efectivo');
+        // Resetear selección de barbero
+        sr.querySelectorAll('input[name="barbero"]').forEach(r => r.checked = false);
         // Limpiar campos de tarjeta y transferencia
         ['cardNumber','cardName','cardExpiry','cardCvv','refTransferencia']
             .forEach(id => { const el = sr.getElementById(id); if (el) el.value = ''; });
@@ -715,6 +791,7 @@ class ReservaComponent extends HTMLElement {
         sr.getElementById('rServicio').textContent = datos.servicio;
         sr.getElementById('rFecha').textContent = datos.fecha;
         sr.getElementById('rHora').textContent = datos.hora;
+        sr.getElementById('rBarbero').textContent = datos.barbero || 'Sin especificar';
         sr.getElementById('rPrecio').textContent = `$${precio}`;
 
         sr.getElementById('formCita').style.display = 'none';
@@ -836,14 +913,20 @@ class ReservaComponent extends HTMLElement {
             const servicio = servicioVal ? servSel.options[servSel.selectedIndex].text : '';
             const hora = sr.getElementById('hora').value;
             const fecha = sr.getElementById('fechaCita').value;
+            const barbero = sr.querySelector('input[name="barbero"]:checked')?.value || '';
 
             if (!nombre || !servicioVal || !hora || !fecha) {
                 msg.className = 'mensaje-cita error';
                 msg.textContent = '⚠️ Todos los campos son obligatorios.';
                 return;
             }
+            if (!barbero) {
+                msg.className = 'mensaje-cita error';
+                msg.textContent = '⚠️ Por favor selecciona un barbero.';
+                return;
+            }
 
-            this._datosCita = { nombre, servicio, servicioVal, hora, fecha };
+            this._datosCita = { nombre, servicio, servicioVal, hora, fecha, barbero };
             this._irAPaso2(this._datosCita);
         });
 
@@ -891,7 +974,8 @@ class ReservaComponent extends HTMLElement {
                 service: servicioVal,
                 time: hora,
                 date: fecha,
-                metodoPago
+                metodoPago,
+                barbero: this._datosCita.barbero || ''
             };
             if (metodoPago === 'tarjeta') {
                 const num = sr.getElementById('cardNumber').value.replace(/\s/g, '');

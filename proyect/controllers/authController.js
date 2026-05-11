@@ -69,7 +69,7 @@ async function registro(req, res) {
         const newUserId = await createUser(name.trim(), email.trim(), hash);
 
         const fechaRegistro = new Date().toISOString();
-        const token = jwt.sign({ id: newUserId, role: 'usuario' }, process.env.JWT_SECRET, { expiresIn: "1d" });
+        const token = jwt.sign({ id: newUserId, role: 'usuario' }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
         // ── Notificar bienvenida a n8n (no bloquea la respuesta) ────────────
         notificarBienvenida({

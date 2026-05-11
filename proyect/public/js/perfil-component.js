@@ -5,16 +5,14 @@ class PerfilComponent extends HTMLElement {
         super();
         this.attachShadow({ mode: 'open' });
 
-        // Datos de perfil (puedes reemplazarlos con datos reales del servidor)
         this._perfil = {
             nombre: '',
             email: '',
-            membresia: 'Básico',        // ← fijo por ahora
-            miembro_desde: '',           // ← vacío hasta tener la columna
-            citas_totales: 0,            // ← vacío hasta tener la tabla Citas
-            proxima_cita: 'Sin citas',   // ← vacío hasta tener la tabla Citas
-            ultimo_servicio: '',         // ← vacío hasta tener la tabla Citas
-            historial: []                // ← vacío hasta tener la tabla Citas
+            miembro_desde: '',
+            citas_totales: 0,
+            proxima_cita: 'Sin citas próximas',
+            historial: [],
+            sinCalificar: 0
         };
     }
 
@@ -288,20 +286,37 @@ class PerfilComponent extends HTMLElement {
        VISTA: CON SESIÓN  (perfil completo)
     ══════════════════════════════════════════ */
     async _renderPerfil(session) {
-        // ← NUEVO: traer citas del servidor
         let citas_totales = 0;
         let proxima_cita = 'Sin citas próximas';
+        let historial = [];      // últimas 3 citas completadas
+        let sinCalificar = 0;    // citas completadas sin calificar
 
         const token = localStorage.getItem('token');
         if (token) {
             try {
+                // Resumen rápido (total + proxima)
                 const res = await fetch('/api/citas/miscitas', {
                     headers: { 'Authorization': token }
                 });
                 const data = await res.json();
                 if (data.ok) {
                     citas_totales = data.total;
-                    proxima_cita = data.proxima;
+                    proxima_cita  = data.proxima;
+                }
+
+                // Historial detallado para sección "Recientes"
+                const res2 = await fetch('/api/citas/mis-citas', {
+                    headers: { 'Authorization': token }
+                });
+                const data2 = await res2.json();
+                if (data2.ok && Array.isArray(data2.citas)) {
+                    const completadas = data2.citas.filter(c => c.status === 'completada');
+                    sinCalificar = completadas.filter(c => c.calificacion == null).length;
+                    historial = completadas.slice(0, 3).map(c => ({
+                        servicio: c.service,
+                        fecha:    new Date(c.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }),
+                        barbero:  c.barbero || null
+                    }));
                 }
             } catch (e) {
                 console.error('Error al cargar citas:', e);
@@ -315,13 +330,14 @@ class PerfilComponent extends HTMLElement {
             fechaFormateada = fecha.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
         }
 
-        // ← actualiza el perfil con los datos reales
         const p = Object.assign({}, this._perfil, {
-            nombre: session.nombre || session.name || this._perfil.nombre,
-            email: session.email || this._perfil.email,
+            nombre:       session.nombre || session.name || this._perfil.nombre,
+            email:        session.email  || this._perfil.email,
             miembro_desde: fechaFormateada,
-            citas_totales,      // ← ahora viene del servidor
-            proxima_cita        // ← ahora viene del servidor
+            citas_totales,
+            proxima_cita,
+            historial,
+            sinCalificar
         });
         const iniciales = p.nombre.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
@@ -639,15 +655,7 @@ class PerfilComponent extends HTMLElement {
                     <div class="avatar">${iniciales}</div>
                     <div class="profile-info">
                         <p class="profile-name">${p.nombre}</p>
-                        <span class="badge">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"
-                                fill="currentColor">
-                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87l1.18 6.88L12 17.77l-6.18 3.25L7 14.14L2 9.27l6.91-1.01L12 2z"/>
-                            </svg>
-                            ${p.membresia}
-                        </span>
-                        ${(session.role === 'admin') ? '<span class="badge" style="margin-left:6px;background:rgba(212,175,55,0.25);border-color:rgba(212,175,55,0.6);">👑 Admin</span>' : ''}
+                        ${(session.role === 'admin') ? '<span class="badge" style="background:rgba(212,175,55,0.25);border-color:rgba(212,175,55,0.6);">👑 Admin</span>' : ''}
                     </div>
                 </div>
 
@@ -683,18 +691,14 @@ class PerfilComponent extends HTMLElement {
                     <!-- Stats -->
                     <hr class="divider">
                     <p class="section-label">Estadísticas</p>
-                    <div class="stats-row">
+                    <div class="stats-row" style="grid-template-columns:1fr 1fr;">
                         <div class="stat-card">
                             <div class="stat-value">${p.citas_totales}</div>
-                            <div class="stat-label">Citas</div>
+                            <div class="stat-label">Total Citas</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value">⭐</div>
-                            <div class="stat-label">${p.membresia}</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value">${p.historial.length}</div>
-                            <div class="stat-label">Recientes</div>
+                            <div class="stat-value">${p.sinCalificar || 0}</div>
+                            <div class="stat-label">Sin Calificar</div>
                         </div>
                     </div>
 
@@ -717,21 +721,24 @@ class PerfilComponent extends HTMLElement {
 
                     <!-- Historial -->
                     <hr class="divider">
-                    <p class="section-label">Historial reciente</p>
+                    <p class="section-label">Citas recientes</p>
                     <ul class="historial-list">
-                        ${p.historial.map(h => `
-                        <li class="historial-item">
-                            <div class="hist-left">
-                                <span class="hist-servicio">${h.servicio}</span>
-                                <span class="hist-fecha">${h.fecha}</span>
-                            </div>
-                            <span class="hist-precio">${h.precio}</span>
-                        </li>`).join('')}
+                        ${
+                            p.historial.length > 0
+                            ? p.historial.map(h => `
+                                <li class="historial-item">
+                                    <div class="hist-left">
+                                        <span class="hist-servicio">${h.servicio}</span>
+                                        <span class="hist-fecha">${h.fecha}${ h.barbero ? ' · ' + h.barbero : '' }</span>
+                                    </div>
+                                    <span class="hist-precio">✅</span>
+                                </li>`).join('')
+                            : `<li style="text-align:center;padding:18px 0;font-family:'Manrope',sans-serif;font-size:0.84rem;color:#475569;">Sin citas completadas aún</li>`
+                        }
                     </ul>
 
                     <!-- Botones -->
-                    <div class="btn-group">
-                        <button class="btn btn-primary" id="btnEditarPerfil">✏️ Editar Perfil</button>
+                    <div class="btn-group" style="grid-template-columns:1fr;">
                         <button class="btn btn-secondary" id="btnVerCitas">📋 Ver Mis Citas</button>
                     </div>
                     <div style="margin-top:10px;">
@@ -868,10 +875,6 @@ class PerfilComponent extends HTMLElement {
             });
 
         } else {
-            sr.getElementById('btnEditarPerfil').addEventListener('click', () => {
-                this.dispatchEvent(new CustomEvent('editar-perfil', { bubbles: true, composed: true }));
-            });
-
             sr.getElementById('btnVerCitas').addEventListener('click', () => {
                 this.close();
                 this.dispatchEvent(new CustomEvent('abrir-mis-citas', { bubbles: true, composed: true }));
