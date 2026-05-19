@@ -36,6 +36,7 @@
             <a href="nosotros.html">Nosotros</a>
             <a href="contacto.html">Contacto</a>
             <a href="#" onclick="abrirMisCitas(event)">Mis Citas</a>
+            <a href="#" onclick="abrirModal(event)">Mi Perfil</a>
         </nav>
         <button class="hamburger" aria-label="Abrir menú">
             <span></span><span></span><span></span>
@@ -232,10 +233,12 @@
     <admin-cortes-component id="modalAdminCortes"></admin-cortes-component>
     <admin-users-component id="modalAdminUsers"></admin-users-component>
     <admin-citas-component id="modalAdminCitas"></admin-citas-component>
+    <admin-barberos-component id="modalAdminBarberos"></admin-barberos-component>
     <calificar-citas id="modalCalificar"></calificar-citas>
     <mis-citas-component id="modalMisCitas"></mis-citas-component>
+    <barbero-panel-component id="modalBarberoPanel"></barbero-panel-component>
 
-    <!-- Admin floating button (hidden by default) -->
+    <!-- Admin floating buttons (hidden by default) -->
     <button class="admin-fab" id="btnAdminCortes" style="display:none;" onclick="abrirAdminCortes()">
         ⚙️ Gestionar Cortes
     </button>
@@ -244,6 +247,13 @@
     </button>
     <button class="admin-fab admin-fab-citas" id="btnAdminCitas" style="display:none;" onclick="abrirAdminCitas()">
         📋 Gestionar Citas
+    </button>
+    <button class="admin-fab admin-fab-barberos" id="btnAdminBarberos" style="display:none;" onclick="abrirAdminBarberos()">
+        ✂️ Gestionar Barberos
+    </button>
+    <!-- Barber floating button (hidden by default) -->
+    <button class="admin-fab admin-fab-barbero" id="btnBarberoPanel" style="display:none;" onclick="abrirPanelBarbero()">
+        ✂️ Mi Panel
     </button>
 
     <style>
@@ -282,6 +292,18 @@
         .admin-fab-citas {
             bottom: 150px;
         }
+
+        .admin-fab-barbero {
+            bottom: 30px;
+            background: linear-gradient(135deg, #63b3ed, #2b6cb0);
+            box-shadow: 0 8px 32px rgba(99, 179, 237, 0.3);
+        }
+        .admin-fab-barbero:hover {
+            box-shadow: 0 12px 40px rgba(99, 179, 237, 0.45);
+        }
+        .admin-fab-barberos {
+            bottom: 210px;
+        }
     </style>
 
     <!-- Scripts -->
@@ -290,8 +312,11 @@
     <script defer src="../js/admin-cortes-component.js"></script>
     <script defer src="../js/admin-users-component.js"></script>
     <script defer src="../js/admin-citas-component.js"></script>
+    <script defer src="../js/admin-barberos-component.js"></script>
     <script defer src="../js/calificar-citas.js"></script>
     <script defer src="../js/mis-citas-component.js"></script>
+    <script defer src="../js/barbero-panel-component.js?v=3"></script>
+    <script defer src="../js/horario-picker.js"></script>
     <script defer src="../js/animations.js"></script>
 
     <script>
@@ -312,9 +337,16 @@
         function abrirAdminCitas() {
             document.getElementById('modalAdminCitas').open();
         }
+        function abrirAdminBarberos() {
+            const el = document.getElementById('modalAdminBarberos');
+            if(el) el.open();
+        }
         function abrirMisCitas(e) {
             if (e) e.preventDefault();
             document.getElementById('modalMisCitas').open();
+        }
+        function abrirPanelBarbero() {
+            document.getElementById('modalBarberoPanel').open();
         }
 
         // Eventos del componente mis-citas
@@ -336,17 +368,24 @@
             });
         });
 
-        // ── Mostrar/ocultar botón admin según rol ──
+        // ── Mostrar/ocultar botones según rol ──
         function checkAdminVisibility() {
             try {
-                const user = JSON.parse(localStorage.getItem('zhola_user'));
-                const isAdmin = user && user.role === 'admin';
-                const display = isAdmin ? 'block' : 'none';
-                document.getElementById('btnAdminCortes').style.display = display;
-                document.getElementById('btnAdminUsers').style.display = display;
-                document.getElementById('btnAdminCitas').style.display = display;
+                const user    = JSON.parse(localStorage.getItem('zhola_user'));
+                const isAdmin   = user && user.role === 'admin';
+                const isBarbero = user && user.role === 'barbero';
+
+                // Botones admin
+                const adminDisplay = isAdmin ? 'block' : 'none';
+                ['btnAdminCortes','btnAdminUsers','btnAdminCitas','btnAdminBarberos'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.style.display = adminDisplay;
+                });
+
+                // Botón barbero
+                document.getElementById('btnBarberoPanel').style.display = isBarbero ? 'block' : 'none';
             } catch (e) {
-                ['btnAdminCortes', 'btnAdminUsers', 'btnAdminCitas'].forEach(id => {
+                ['btnAdminCortes','btnAdminUsers','btnAdminCitas','btnAdminBarberos','btnBarberoPanel'].forEach(id => {
                     const el = document.getElementById(id);
                     if (el) el.style.display = 'none';
                 });

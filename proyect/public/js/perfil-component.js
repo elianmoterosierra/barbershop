@@ -803,23 +803,90 @@ class PerfilComponent extends HTMLElement {
             sr.getElementById('irRegistro').addEventListener('click', showRegistro);
             sr.getElementById('irLogin').addEventListener('click', showLogin);
 
+            // ── helpers de validación ──────────────────────────
+            function setInputError(input, hasError) {
+                if (!input) return;
+                input.style.borderColor = hasError
+                    ? 'rgba(239,68,68,0.7)'
+                    : 'rgba(255,255,255,0.1)';
+            }
+
+            function showMsg(divMensaje, text, isError = true) {
+                divMensaje.textContent = text;
+                divMensaje.style.display = 'block';
+                divMensaje.style.background = isError
+                    ? 'rgba(239,68,68,0.1)'
+                    : 'rgba(52,211,153,0.1)';
+                divMensaje.style.color = isError ? '#fca5a5' : '#6ee7b7';
+                divMensaje.style.border = isError
+                    ? '1px solid rgba(239,68,68,0.3)'
+                    : '1px solid rgba(52,211,153,0.3)';
+                divMensaje.style.borderRadius = '8px';
+                divMensaje.style.padding = '10px 14px';
+                divMensaje.style.fontFamily = "'Manrope', sans-serif";
+                divMensaje.style.fontSize = '0.85rem';
+            }
+
+            function clearMsg(divMensaje) {
+                divMensaje.style.display = 'none';
+                divMensaje.textContent = '';
+            }
+
+            function validateFields(fields, sr, divMensaje) {
+                let valid = true;
+
+                // Resetear bordes
+                fields.forEach(f => setInputError(sr.getElementById(f.id), false));
+                clearMsg(divMensaje);
+
+                // 1. Campos vacíos
+                for (const f of fields) {
+                    const input = sr.getElementById(f.id);
+                    if (!input.value.trim()) {
+                        setInputError(input, true);
+                        showMsg(divMensaje, '⚠️ Por favor completa todos los campos.');
+                        return false;
+                    }
+                }
+
+                // 2. Validar email
+                const emailField = fields.find(f => f.key === 'email');
+                if (emailField) {
+                    const emailInput = sr.getElementById(emailField.id);
+                    const emailVal   = emailInput.value.trim();
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(emailVal)) {
+                        setInputError(emailInput, true);
+                        showMsg(divMensaje, '⚠️ El correo no es válido. Debe contener @ y un dominio (ej: nombre@correo.com).');
+                        return false;
+                    }
+                }
+
+                // 3. Validar contraseña mínimo 8 caracteres
+                const passField = fields.find(f => f.key === 'password');
+                if (passField) {
+                    const passInput = sr.getElementById(passField.id);
+                    if (passInput.value.length < 8) {
+                        setInputError(passInput, true);
+                        showMsg(divMensaje, '⚠️ La contraseña debe tener al menos 8 caracteres.');
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+            // ────────────────────────────────────────────────────
+
             async function handleAuth({ route, type, component, fields }) {
                 const sr = component.shadowRoot;
                 const divMensaje = sr.getElementById(`msg-${type}`);
 
-                // Validar que no estén vacíos
-                const valores = fields.map(f => sr.getElementById(f.id).value.trim());
-                if (valores.some(v => !v)) {
-                    divMensaje.textContent = 'Completa todos los campos.';
-                    divMensaje.style.display = 'block';
-                    divMensaje.style.color = '#ff4444';
-                    return;
-                }
+                // Validaciones client-side
+                if (!validateFields(fields, sr, divMensaje)) return;
 
-                // Construir body con las claves correctas
+                // Construir body
                 const body = {};
                 fields.forEach(f => body[f.key] = sr.getElementById(f.id).value.trim());
-                // Ahora body = { email: "...", password: "..." } ✅
 
                 try {
                     const response = await fetch(`http://localhost:3000${route}`, {
@@ -837,15 +904,11 @@ class PerfilComponent extends HTMLElement {
                         }));
                         component._render();
                     } else {
-                        divMensaje.textContent = data.error || 'Error.';
-                        divMensaje.style.display = 'block';
-                        divMensaje.style.color = '#ff4444';
+                        showMsg(divMensaje, '❌ ' + (data.error || 'Error. Intenta de nuevo.'));
                     }
                 } catch (error) {
                     console.error('Error:', error);
-                    divMensaje.textContent = error.message; // ← mostrar error real
-                    divMensaje.style.display = 'block';
-                    divMensaje.style.color = '#ff4444';
+                    showMsg(divMensaje, '❌ Error de conexión. Verifica tu red.');
                 }
             }
 

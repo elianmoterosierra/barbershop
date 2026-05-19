@@ -3,7 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { findByEmail, createUser } = require("../models/userModel");
 
-const N8N_BIENVENIDA = "https://elian222.app.n8n.cloud/webhook-test/reguistre_barberia";
+const N8N = "https://elian222.app.n8n.cloud/webhook-test/reguistre_barberia";
 
 /**
  * Envía los datos del nuevo usuario al webhook de bienvenida en n8n.
@@ -11,20 +11,20 @@ const N8N_BIENVENIDA = "https://elian222.app.n8n.cloud/webhook-test/reguistre_ba
  * @param {{ nombre: string, email: string, fecha_registro: string }} datos
  */
 async function notificarBienvenida(datos) {
-    const payload = JSON.stringify({
+    const datos_para_n8n = JSON.stringify({
         nombre: datos.nombre,
         email: datos.email,
         fecha_registro: datos.fecha_registro,
     });
 
-    const url = new URL(N8N_BIENVENIDA);
+    const url = new URL(N8N);
     const options = {
         hostname: url.hostname,
         path: url.pathname,
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "Content-Length": Buffer.byteLength(payload),
+            "Content-Length": Buffer.byteLength(datos_para_n8n),
         },
     };
 
@@ -41,7 +41,7 @@ async function notificarBienvenida(datos) {
             console.error("⚠️  n8n bienvenida falló (usuario ya registrado):", err.message);
             resolve(); // no propagar el error
         });
-        req.write(payload);
+        req.write(datos_para_n8n);
         req.end();
     });
 }
@@ -117,7 +117,7 @@ async function login(req, res) {
             return res.status(401).json({ ok: false, error: "Contraseña incorrecta." });
         }
 
-        const token = jwt.sign({ id: user.id, role: user.role || 'usuario' }, process.env.JWT_SECRET, { expiresIn: "1d" });
+        const token = jwt.sign({ id: user.id, role: user.role || 'usuario' }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
         res.json({
             ok: true,

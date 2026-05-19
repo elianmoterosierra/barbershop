@@ -477,6 +477,177 @@ class ReservaComponent extends HTMLElement {
                     filter: grayscale(0%);
                     border-color: #D4AF37;
                 }
+                /* Barbero fuera de servicio */
+                .barbero-opcion.fuera-servicio label {
+                    opacity: .45;
+                    cursor: not-allowed;
+                    position: relative;
+                }
+                .barbero-opcion.fuera-servicio label::after {
+                    content: 'Fuera de servicio';
+                    position: absolute;
+                    bottom: 6px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    font-size: .62rem;
+                    color: #f87171;
+                    white-space: nowrap;
+                    font-weight: 700;
+                    letter-spacing: .03em;
+                }
+                .barbero-opcion.fuera-servicio input[type="radio"] { pointer-events: none; }
+                .barberos-loading { text-align:center; color:#64748b; font-family:'Manrope',sans-serif; font-size:.82rem; padding:16px; grid-column:1/-1; }
+
+                /* ===== BOTÓN HORARIO ===== */
+                .btn-horario {
+                    width: 100%; padding: 14px;
+                    background: transparent; color: #D4AF37;
+                    border: 2px solid #D4AF37; border-radius: 50px;
+                    font-family: 'Manrope', sans-serif; font-size: 1rem; font-weight: 700;
+                    letter-spacing: .03em; cursor: pointer;
+                    margin-top: 8px; margin-bottom: 4px;
+                    transition: background .2s, transform .15s;
+                    display: flex; align-items: center; justify-content: center; gap: 8px;
+                }
+                .btn-horario:hover { background: rgba(212,175,55,.12); transform: translateY(-1px); }
+                .btn-horario.done { background: rgba(212,175,55,.12); }
+
+                /* ===== OVERLAYS INTERNOS (calendario y hora) ===== */
+                .sub-overlay {
+                    display: none; position: fixed; inset: 0;
+                    background: rgba(0,0,0,.72); backdrop-filter: blur(5px);
+                    z-index: 2000; justify-content: center; align-items: center;
+                }
+                .sub-overlay.open { display: flex; animation: fadeInOverlay .2s ease; }
+
+                .sub-modal {
+                    background: #0f1b2d; border-radius: 20px;
+                    width: min(340px, 92vw); padding: 28px 22px 22px;
+                    box-shadow: 0 24px 60px rgba(0,0,0,.8);
+                    animation: slideUp .3s cubic-bezier(.34,1.56,.64,1);
+                    position: relative; font-family: 'Manrope', sans-serif;
+                }
+                .sub-close {
+                    position: absolute; top: 14px; right: 16px;
+                    background: none; border: none; color: #5a6a82;
+                    font-size: 1.6rem; line-height: 1; cursor: pointer; transition: color .2s;
+                }
+                .sub-close:hover { color: #D4AF37; }
+                .sub-steps { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; }
+                .ss-dot {
+                    width: 26px; height: 26px; border-radius: 50%;
+                    border: 2px solid rgba(212,175,55,.3);
+                    display: flex; align-items: center; justify-content: center;
+                    font-size: .72rem; font-weight: 700; color: #5a6a82; transition: all .3s;
+                }
+                .ss-dot.active { background: #D4AF37; border-color: #D4AF37; color: #0f1b2d; }
+                .ss-dot.done  { background: rgba(212,175,55,.15); border-color: #D4AF37; color: #D4AF37; }
+                .ss-line { flex: 1; height: 2px; background: rgba(212,175,55,.2); border-radius: 2px; }
+                .ss-line.done { background: rgba(212,175,55,.5); }
+                .sub-title { text-align: center; font-size: 1.5rem; font-weight: 700; color: #fff; margin: 0 0 4px; }
+                .sub-subtitle { font-size: .84rem; color: #5a6a82; margin: 0 0 14px; }
+
+                /* ── CALENDARIO ── */
+                .cal-nav { display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:12px; }
+                .cal-nav button { background:none; border:none; color:#5a6a82; font-size:1.3rem; cursor:pointer; padding:4px 8px; border-radius:6px; transition:color .2s; }
+                .cal-nav button:hover { color:#D4AF37; }
+                .cal-nav span { color:#cdd6e0; font-weight:600; font-size:.9rem; min-width:150px; text-align:center; }
+                .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; text-align:center; }
+                .cal-head { font-size:.68rem; font-weight:700; color:#5a6a82; padding:4px 0 8px; letter-spacing:.04em; }
+                .cal-day {
+                    padding:6px 2px; font-size:.86rem; color:#8b9ab5; border-radius:50%;
+                    cursor:pointer; transition:all .15s;
+                    aspect-ratio:1; display:flex; align-items:center; justify-content:center;
+                }
+                .cal-day:hover:not(.empty):not(.past) { color:#fff; background:rgba(212,175,55,.2); }
+                .cal-day.empty, .cal-day.past { pointer-events:none; color:#2e3d50; }
+                .cal-day.today { color:#D4AF37; font-weight:700; }
+                .cal-day.selected { background:#D4AF37; color:#0f1b2d; font-weight:700; box-shadow:0 0 0 3px rgba(212,175,55,.25); }
+                /* Día completamente ocupado (todos los slots reservados) */
+                .cal-day.full {
+                    color: #f87171;
+                    background: rgba(239,68,68,0.10);
+                    border: 1px solid rgba(239,68,68,0.30);
+                    pointer-events: none;
+                    opacity: 0.75;
+                }
+
+                /* ── GRILLA DE HORARIOS ── */
+                .time-slots-grid {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 8px;
+                    margin: 4px 0 18px;
+                    max-height: 240px;
+                    overflow-y: auto;
+                    scrollbar-width: thin;
+                    scrollbar-color: #D4AF37 transparent;
+                    padding-right: 2px;
+                }
+                .time-slot-btn {
+                    padding: 9px 4px;
+                    border-radius: 8px;
+                    border: 1.5px solid rgba(255,255,255,0.1);
+                    background: rgba(255,255,255,0.04);
+                    color: #8b9ab5;
+                    font-family: 'Manrope', sans-serif;
+                    font-size: 0.8rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.15s;
+                    text-align: center;
+                }
+                .time-slot-btn:hover {
+                    border-color: rgba(212,175,55,0.45);
+                    color: #f6f6f8;
+                    background: rgba(212,175,55,0.07);
+                }
+                .time-slot-btn.selected {
+                    background: rgba(212,175,55,0.15);
+                    border-color: #D4AF37;
+                    color: #D4AF37;
+                    font-weight: 700;
+                }
+                .time-slots-empty {
+                    grid-column: 1 / -1;
+                    text-align: center;
+                    font-family: 'Manrope', sans-serif;
+                    font-size: 0.85rem;
+                    color: #64748b;
+                    padding: 24px 0;
+                }
+
+                /* ── BOTÓN CONFIRMAR SUB-MODAL ── */
+                .sub-confirm {
+                    width:100%; padding:13px; border-radius:50px; border:none;
+                    background:#D4AF37; color:#0f1b2d;
+                    font-family:'Manrope',sans-serif; font-size:1rem; font-weight:800;
+                    cursor:pointer; transition:opacity .2s, transform .15s;
+                    letter-spacing:.03em; margin-top:4px;
+                }
+                .sub-confirm:disabled { opacity:.3; cursor:not-allowed; }
+                .sub-confirm:not(:disabled):hover { opacity:.86; transform:translateY(-1px); }
+
+                /* Slot ocupado (rojo, no seleccionable para confirmar) */
+                .time-slot-btn.occupied {
+                    background: rgba(239,68,68,0.10);
+                    border-color: rgba(239,68,68,0.40);
+                    color: #f87171;
+                    cursor: not-allowed;
+                }
+                .time-slot-btn.occupied:hover {
+                    background: rgba(239,68,68,0.16);
+                    border-color: rgba(239,68,68,0.55);
+                    color: #fca5a5;
+                }
+                /* Nota de conflicto (debajo de la grilla) */
+                .conflict-note {
+                    font-family: 'Manrope', sans-serif;
+                    font-size: 0.78rem;
+                    color: #f87171;
+                    margin: -10px 0 10px;
+                    min-height: 18px;
+                }
 
                 /* ===== RESPONSIVE ===== */
                 @media (max-width: 500px) {
@@ -528,70 +699,63 @@ class ReservaComponent extends HTMLElement {
                     <div class="form-group">
                         <label>Barbero</label>
                         <div class="barberos-grid" id="barberosGrid">
-                            <div class="barbero-opcion">
-                                <input type="radio" name="barbero" id="bJulian" value="Julián Vega">
-                                <label for="bJulian">
-                                    <img class="barbero-avatar" src="https://img.freepik.com/foto-gratis/retrato-estilista-barbudo-que-mira-camara_23-2147839834.jpg?semt=ais_hybrid&w=740&q=80" alt="Julián Vega">
-                                    <span>Julián Vega</span>
-                                </label>
-                            </div>
-                            <div class="barbero-opcion">
-                                <input type="radio" name="barbero" id="bAntony" value="Antony Martinez">
-                                <label for="bAntony">
-                                    <img class="barbero-avatar" src="https://img.freepik.com/foto-gratis/retrato-estilista-masculino-mirando-camara_23-2147839829.jpg?semt=ais_user_personalization&w=740&q=80" alt="Antony Martinez">
-                                    <span>Antony Martinez</span>
-                                </label>
-                            </div>
-                            <div class="barbero-opcion">
-                                <input type="radio" name="barbero" id="bMarcos" value="Marcos Thorne">
-                                <label for="bMarcos">
-                                    <img class="barbero-avatar" src="https://img.freepik.com/foto-gratis/retrato-peluquero-masculino-maquinilla-afeitar_23-2147839800.jpg?semt=ais_hybrid&w=740&q=80" alt="Marcos Thorne">
-                                    <span>Marcos Thorne</span>
-                                </label>
-                            </div>
+                            <div class="barberos-loading">Cargando barberos...</div>
                         </div>
                     </div>
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="hora">Hora</label>
-                            <select id="hora" name="hora" required>
-                                <option value="" disabled selected>Selecciona hora</option>
-                                <option value="09:00">9:00 AM</option>
-                                <option value="09:30">9:30 AM</option>
-                                <option value="10:00">10:00 AM</option>
-                                <option value="10:30">10:30 AM</option>
-                                <option value="11:00">11:00 AM</option>
-                                <option value="11:30">11:30 AM</option>
-                                <option value="12:00">12:00 PM</option>
-                                <option value="12:30">12:30 PM</option>
-                                <option value="13:00">1:00 PM</option>
-                                <option value="13:30">1:30 PM</option>
-                                <option value="14:00">2:00 PM</option>
-                                <option value="14:30">2:30 PM</option>
-                                <option value="15:00">3:00 PM</option>
-                                <option value="15:30">3:30 PM</option>
-                                <option value="16:00">4:00 PM</option>
-                                <option value="16:30">4:30 PM</option>
-                                <option value="17:00">5:00 PM</option>
-                                <option value="17:30">5:30 PM</option>
-                                <option value="18:00">6:00 PM</option>
-                                <option value="18:30">6:30 PM</option>
-                                <option value="19:00">7:00 PM</option>
-                                <option value="19:30">7:30 PM</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="fechaCita">Día</label>
-                            <input type="date" id="fechaCita" name="fecha" required />
-                        </div>
-                    </div>
+                    <!-- Botón trigger horario -->
+                    <button type="button" class="btn-horario" id="btnHorario">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                        <span id="horarioLabel">Seleccionar horario</span>
+                    </button>
 
                     <div class="mensaje-cita" id="mensajeCita"></div>
-
                     <button type="submit" class="btn-submit">Siguiente &rarr;</button>
                 </form>
+
+                <!-- ===== MODAL DÍA (overlay interno) ===== -->
+                <div class="sub-overlay" id="overlayDia">
+                  <div class="sub-modal">
+                    <button class="sub-close" id="closeDia">&times;</button>
+                    <div class="sub-steps">
+                        <div class="ss-dot active">1</div>
+                        <div class="ss-line"></div>
+                        <div class="ss-dot">2</div>
+                    </div>
+                    <h2 class="sub-title">Día</h2>
+                    <div class="cal-nav">
+                        <button id="calPrev">&#8249;</button>
+                        <span id="calLabel"></span>
+                        <button id="calNext">&#8250;</button>
+                    </div>
+                    <div class="cal-grid" id="calGrid"></div>
+                    <button class="sub-confirm" id="btnContinuarHora" disabled style="margin-top:18px">Continuar</button>
+                  </div>
+                </div>
+
+                <!-- ===== MODAL HORA (overlay interno) ===== -->
+                <div class="sub-overlay" id="overlayHora">
+                  <div class="sub-modal">
+                    <button class="sub-close" id="closeHora">&times;</button>
+                    <div class="sub-steps">
+                        <div class="ss-dot done">&#10003;</div>
+                        <div class="ss-line done"></div>
+                        <div class="ss-dot active">2</div>
+                    </div>
+                    <h2 class="sub-title" style="text-align:left;font-size:1.2rem;margin-bottom:2px">Hora</h2>
+                    <p class="sub-subtitle">Selecciona la hora de tu cita</p>
+
+                    <!-- Grilla de TODOS los horarios (ocupados en rojo) -->
+                    <div class="time-slots-grid" id="timeSlotsGrid"></div>
+                    <p class="conflict-note" id="conflictNote"></p>
+                    <button class="sub-confirm" id="btnConfirmarHora">Confirmar &rarr;</button>
+                  </div>
+                </div>
 
                 <!-- ===== PANEL DE COBRO ===== -->
                 <div class="panel-cobro" id="panelCobro">
@@ -691,11 +855,240 @@ class ReservaComponent extends HTMLElement {
 
     /** Abre el modal (llamable desde cualquier parte: modal.open()) */
     open() {
-        const hoy = new Date().toISOString().split('T')[0];
-        this.shadowRoot.getElementById('fechaCita').min = hoy;
         this.classList.add('active');
         document.body.style.overflow = 'hidden';
+        this._slotsOcupados = [];
         this._loadCortes();
+        this._loadBarberos();
+    }
+
+    /* ═══════════ VALIDACIÓN DE CONFLICTOS ═══════════ */
+
+    /**
+     * Consulta el endpoint público de disponibilidad y guarda los slots
+     * ocupados (formato 'HH:MM' 24h) en this._slotsOcupados.
+     * @param {string} barbero - Nombre exacto del barbero
+     * @param {string} fecha   - 'YYYY-MM-DD'
+     */
+    async _fetchSlotsOcupados(barbero, fecha) {
+        if (!barbero || !fecha) { this._slotsOcupados = []; return; }
+        try {
+            const url = `/api/citas/disponibilidad?barbero=${encodeURIComponent(barbero)}&fecha=${fecha}`;
+            const res  = await fetch(url);
+            const data = await res.json();
+            this._slotsOcupados = data.ok ? (data.slotsOcupados || []) : [];
+        } catch (e) {
+            console.warn('No se pudo verificar disponibilidad:', e.message);
+            this._slotsOcupados = [];
+        }
+    }
+
+    /**
+     * Convierte la selección actual del drum a formato 24h 'HH:MM'.
+     * El drum muestra horas en formato 12h (07-12 AM / 01-07 PM).
+     */
+    _getSlot24h() {
+        const h  = parseInt(this._drumH, 10);
+        const m  = this._drumM;          // '00','15','30','45'
+        const p  = this._drumP;          // 'AM' | 'PM'
+        let hour24;
+        if (p === 'AM') {
+            // 12 AM = medianoche (00:xx) — no aplica en horario de barbería, pero por completitud:
+            hour24 = h === 12 ? 0 : h;
+        } else {
+            // 12 PM = mediodía (12:xx), resto sumar 12
+            hour24 = h === 12 ? 12 : h + 12;
+        }
+        return `${String(hour24).padStart(2,'0')}:${m}`;
+    }
+
+    /**
+     * Devuelve el siguiente slot disponible (bloques de 30 min) a partir
+     * del slot indicado, saltando los que están en ocupados[].
+     * Rango del negocio: 07:00 – 19:00.
+     * @param {string} slotActual  - 'HH:MM' 24h del slot conflictivo
+     * @param {string[]} ocupados  - Array de 'HH:MM' 24h ocupados
+     * @returns {string|null}      - 'HH:MM' 24h del próximo libre, o null si no hay
+     */
+    _findNextSlot(slotActual, ocupados) {
+        const [hh, mm] = slotActual.split(':').map(Number);
+        let totalMin = hh * 60 + mm + 30; // empezar en el siguiente bloque
+        const endMin = 19 * 60;           // límite 19:00
+        while (totalMin <= endMin) {
+            const h = Math.floor(totalMin / 60);
+            const m = totalMin % 60;
+            const candidate = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+            if (!ocupados.includes(candidate)) return candidate;
+            totalMin += 30;
+        }
+        return null;
+    }
+
+    /**
+     * Construye la grilla completa de horarios (07:00 – 19:00, bloques de 30 min).
+     * Los slots ocupados se muestran en ROJO; los libres con el estilo normal.
+     * Al hacer clic en uno ocupado se muestra una nota y se bloquea el botón.
+     */
+    _buildTimeSlots() {
+        const sr    = this.shadowRoot;
+        const grid  = sr.getElementById('timeSlotsGrid');
+        const btnOk = sr.getElementById('btnConfirmarHora');
+        const note  = sr.getElementById('conflictNote');
+        if (!grid) return;
+
+        grid.innerHTML = '';
+        this._selectedSlot24 = null;
+        if (btnOk) btnOk.disabled = true;
+        if (note)  note.textContent = '';
+
+        const ocupados = this._slotsOcupados || [];
+
+        // Generar TODOS los slots del día
+        for (let totalMin = 7 * 60; totalMin <= 19 * 60; totalMin += 30) {
+            const h   = Math.floor(totalMin / 60);
+            const m   = totalMin % 60;
+            const s24 = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+            const label = this._slot24ToLabel(s24);
+            const isOcupado = ocupados.includes(s24);
+
+            const btn = document.createElement('button');
+            btn.type        = 'button';
+            btn.textContent = label;
+            btn.dataset.slot = s24;
+            btn.className   = isOcupado ? 'time-slot-btn occupied' : 'time-slot-btn';
+
+            btn.addEventListener('click', () => {
+                // Limpiar selección anterior
+                grid.querySelectorAll('.time-slot-btn').forEach(b => {
+                    b.classList.remove('selected');
+                });
+
+                if (isOcupado) {
+                    // Slot ocupado: marcar visualmente pero bloquear confirm
+                    btn.classList.add('selected');
+                    this._selectedSlot24 = null;
+                    if (btnOk) btnOk.disabled = true;
+                    if (note)  note.textContent = '⛔ Este horario ya está reservado con este barbero.';
+                } else {
+                    // Slot libre: seleccionar y habilitar confirm
+                    btn.classList.add('selected');
+                    this._selectedSlot24 = s24;
+                    if (btnOk) btnOk.disabled = false;
+                    if (note)  note.textContent = '';
+                }
+            });
+
+            grid.appendChild(btn);
+        }
+    }
+
+    /**
+     * Convierte una hora 24h 'HH:MM' al formato de etiqueta 12h legible.
+     * @param {string} slot24 - 'HH:MM'
+     * @returns {string}      - 'HH:MM AM/PM'
+     */
+    _slot24ToLabel(slot24) {
+        const [h, m] = slot24.split(':').map(Number);
+        const period = h < 12 ? 'AM' : 'PM';
+        const h12    = h === 0 ? 12 : h > 12 ? h - 12 : h;
+        return `${String(h12).padStart(2,'0')}:${String(m).padStart(2,'0')} ${period}`;
+    }
+
+    /**
+     * Mueve el drum de hora y minuto al slot indicado (24h 'HH:MM').
+     * Útil para saltar al siguiente slot disponible con un clic.
+     * @param {string} slot24 - 'HH:MM'
+     */
+    _jumpDrumToSlot(slot24) {
+        if (!this._drumDefs) return;
+        const [h, m] = slot24.split(':').map(Number);
+        const period = h < 12 ? 'AM' : 'PM';
+        const h12Str = String(h === 0 ? 12 : h > 12 ? h - 12 : h).padStart(2,'0');
+        const mStr   = String(m).padStart(2,'0');
+
+        // Cambiar período si hace falta
+        const periodDrum = this._drumDefs.period;
+        const pIdx = periodDrum.items.indexOf(period);
+        if (pIdx >= 0 && periodDrum.idx % periodDrum.items.length !== pIdx) {
+            periodDrum.idx = pIdx;
+            this._snapDrum(periodDrum); // esto reconstruye el drum de horas
+        }
+
+        // Ajustar hora
+        const hourDrum = this._drumDefs.hour;
+        const hIdx = hourDrum.items.indexOf(h12Str);
+        if (hIdx >= 0) {
+            const HALF = Math.floor((hourDrum.REPEATS || 7) / 2);
+            hourDrum.idx = HALF * hourDrum.items.length + hIdx;
+            this._snapDrum(hourDrum);
+        }
+
+        // Ajustar minuto
+        const minDrum = this._drumDefs.min;
+        const minIdx = minDrum.items.indexOf(mStr);
+        if (minIdx >= 0) {
+            const HALF = Math.floor((minDrum.REPEATS || 7) / 2);
+            minDrum.idx = HALF * minDrum.items.length + minIdx;
+            this._snapDrum(minDrum);
+        }
+
+        // Refrescar valores en memoria
+        this._syncDrumValues();
+    }
+
+    /**
+     * Consulta qué días del mes están completamente llenos para el barbero dado.
+     * Guarda el resultado en this._diasCompletos (array de 'YYYY-MM-DD').
+     * @param {string} barbero
+     * @param {number} year
+     * @param {number} month  - 0-indexed (igual que Date)
+     */
+    async _fetchDiasCompletos(barbero, year, month) {
+        if (!barbero) { this._diasCompletos = []; return; }
+        try {
+            const inicio = `${year}-${String(month + 1).padStart(2,'0')}-01`;
+            const lastDay = new Date(year, month + 1, 0).getDate();
+            const fin    = `${year}-${String(month + 1).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
+            const url = `/api/citas/dias-completos?barbero=${encodeURIComponent(barbero)}&inicio=${inicio}&fin=${fin}`;
+            const res  = await fetch(url);
+            const data = await res.json();
+            this._diasCompletos = data.ok ? (data.diasCompletos || []) : [];
+        } catch (e) {
+            console.warn('No se pudo consultar días completos:', e.message);
+            this._diasCompletos = [];
+        }
+    }
+
+    /* ═══════════ FIN VALIDACIÓN DE CONFLICTOS ═══════════ */
+
+    /** Carga los barberos activos desde la API */
+    async _loadBarberos() {
+        const grid = this.shadowRoot.getElementById('barberosGrid');
+        if (!grid) return;
+        grid.innerHTML = '<div class="barberos-loading">Cargando barberos...</div>';
+        try {
+            const res = await fetch('/api/barberos/publico');
+            const data = await res.json();
+            if (!data.ok || !data.barberos.length) {
+                grid.innerHTML = '<div class="barberos-loading">No hay barberos disponibles.</div>';
+                return;
+            }
+            const DEFAULT_IMG = 'https://img.freepik.com/foto-gratis/retrato-estilista-barbudo-que-mira-camara_23-2147839834.jpg?semt=ais_hybrid&w=740&q=80';
+            grid.innerHTML = data.barberos.map((b, i) => {
+                const safeId = 'b' + b.id;
+                const img = b.foto_url || DEFAULT_IMG;
+                return `
+                <div class="barbero-opcion">
+                    <input type="radio" name="barbero" id="${safeId}" value="${b.nombre}">
+                    <label for="${safeId}">
+                        <img class="barbero-avatar" src="${img}" alt="${b.nombre}" onerror="this.src='${DEFAULT_IMG}'">
+                        <span>${b.nombre}</span>
+                    </label>
+                </div>`;
+            }).join('');
+        } catch {
+            grid.innerHTML = '<div class="barberos-loading">❌ Error al cargar barberos.</div>';
+        }
     }
 
     /** Carga los cortes dinámicamente desde la API */
@@ -777,6 +1170,19 @@ class ReservaComponent extends HTMLElement {
         ['cardNumber','cardName','cardExpiry','cardCvv','refTransferencia']
             .forEach(id => { const el = sr.getElementById(id); if (el) el.value = ''; });
         sr.getElementById('btnConfirmarPago').disabled = false;
+        // Resetear horario
+        this._horarioData    = null;
+        this._selectedDay    = null;
+        this._selectedSlot24 = null;
+        const lbl = sr.getElementById('horarioLabel');
+        if (lbl) lbl.textContent = 'Seleccionar horario';
+        const btnH = sr.getElementById('btnHorario');
+        if (btnH) btnH.classList.remove('done');
+        // Resetear calendario
+        this._calMonth = new Date().getMonth();
+        this._calYear  = new Date().getFullYear();
+        const contBtn = sr.getElementById('btnContinuarHora');
+        if (contBtn) contBtn.disabled = true;
     }
 
     /** Muestra el panel de cobro con los datos del formulario */
@@ -854,7 +1260,235 @@ class ReservaComponent extends HTMLElement {
         return null;
     }
 
+    /* ═══════════ CALENDARIO ═══════════ */
+    _buildCalendar() {
+        const sr = this.shadowRoot;
+        if (!this._calMonth && this._calMonth !== 0) {
+            this._calMonth = new Date().getMonth();
+            this._calYear  = new Date().getFullYear();
+        }
+        const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                        'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+        const today = new Date(); today.setHours(0,0,0,0);
+        sr.getElementById('calLabel').textContent = `${MONTHS[this._calMonth]} ${this._calYear}`;
+
+        const grid = sr.getElementById('calGrid');
+        grid.innerHTML = '';
+        ['L','M','M','J','V','S','D'].forEach(d => {
+            const h = document.createElement('div');
+            h.className = 'cal-head'; h.textContent = d; grid.appendChild(h);
+        });
+        let startDow = new Date(this._calYear, this._calMonth, 1).getDay();
+        startDow = startDow === 0 ? 6 : startDow - 1;
+        for (let i = 0; i < startDow; i++) {
+            const e = document.createElement('div'); e.className = 'cal-day empty'; grid.appendChild(e);
+        }
+        const daysInMonth = new Date(this._calYear, this._calMonth + 1, 0).getDate();
+        for (let d = 1; d <= daysInMonth; d++) {
+            const cell = document.createElement('div');
+            cell.className = 'cal-day';
+            cell.textContent = d;
+            const cellDate = new Date(this._calYear, this._calMonth, d);
+            const fechaISO = `${this._calYear}-${String(this._calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+
+            if (cellDate < today)  cell.classList.add('past');
+            if (cellDate.toDateString() === today.toDateString()) cell.classList.add('today');
+            // Día completamente ocupado — marcar en rojo e impedir selección
+            if ((this._diasCompletos || []).includes(fechaISO)) cell.classList.add('full');
+            if (this._selectedDay && d === this._selectedDay.d &&
+                this._calMonth === this._selectedDay.m && this._calYear === this._selectedDay.y) {
+                cell.classList.add('selected');
+            }
+            cell.addEventListener('click', () => {
+                this._selectedDay = { d, m: this._calMonth, y: this._calYear };
+                this._buildCalendar();
+                sr.getElementById('btnContinuarHora').disabled = false;
+            });
+            grid.appendChild(cell);
+        }
+    }
+
+    /* ═══════════ DRUM ROLLER ═══════════ */
+
+    /** Horas válidas según período */
+    _hoursForPeriod(period) {
+        return period === 'AM'
+            ? ['07','08','09','10','11']          // 7 AM – 11 AM
+            : ['12','01','02','03','04','05','06','07']; // 12 PM – 7 PM
+    }
+
+    _buildDrums() {
+        const sr = this.shadowRoot;
+        const ITEM_H = 52, PAD = 2, REPEATS = 7;
+        const hoursAM = this._hoursForPeriod('AM');
+        const minutes = ['00','15','30','45'];
+        const periods = ['AM','PM'];
+
+        const HALF = Math.floor(REPEATS / 2);
+        const makeStartIdx = (arr, val) => {
+            const i = arr.indexOf(val);
+            return HALF * arr.length + (i >= 0 ? i : 0);
+        };
+
+        this._drumDefs = {
+            // hora: infinita, arranca con horas AM
+            hour:   { el: sr.getElementById('drumHour'),   items: hoursAM, idx: makeStartIdx(hoursAM,'10'), REPEATS, ITEM_H, PAD, loop: true  },
+            min:    { el: sr.getElementById('drumMin'),     items: minutes, idx: makeStartIdx(minutes,'00'), REPEATS, ITEM_H, PAD, loop: true  },
+            // periodo: NO infinito — sólo AM y PM, se detiene en los bordes
+            period: { el: sr.getElementById('drumPeriod'), items: periods, idx: 0,                          REPEATS: 1, ITEM_H, PAD, loop: false }
+        };
+
+        for (const drum of Object.values(this._drumDefs)) {
+            this._renderDrumInner(drum);
+            this._initDrumDrag(drum);
+        }
+    }
+
+    /** Construye (o reconstruye) el contenido interno de un drum */
+    _renderDrumInner(drum) {
+        const ITEM_H = drum.ITEM_H || 52;
+        const PAD    = drum.PAD    || 2;
+        const REPEATS = drum.loop === false ? 1 : (drum.REPEATS || 7);
+
+        drum.el.innerHTML = '';
+        const inner = document.createElement('div'); inner.className = 'drum-inner';
+        for (let i = 0; i < PAD; i++) { const e = document.createElement('div'); e.className='drum-item'; inner.appendChild(e); }
+        const total = drum.items.length * REPEATS;
+        for (let i = 0; i < total; i++) {
+            const e = document.createElement('div');
+            e.className = 'drum-item';
+            e.textContent = drum.items[i % drum.items.length];
+            inner.appendChild(e);
+        }
+        for (let i = 0; i < PAD; i++) { const e = document.createElement('div'); e.className='drum-item'; inner.appendChild(e); }
+        drum.el.appendChild(inner);
+        drum._inner = inner;
+        drum._total = total;
+        inner.style.transition = 'none';
+        inner.style.transform  = `translateY(${-drum.idx * ITEM_H}px)`;
+        this._updateDrumClasses(drum);
+    }
+
+    /**
+     * Cambia la lista de horas disponibles según el período seleccionado.
+     * Intenta conservar la hora actualmente seleccionada; si no es válida, va al primero.
+     */
+    _rebuildHourDrum(period) {
+        const drum   = this._drumDefs.hour;
+        const ITEM_H = drum.ITEM_H || 52;
+        const PAD    = drum.PAD    || 2;
+        const REPEATS = drum.REPEATS || 7;
+        const HALF   = Math.floor(REPEATS / 2);
+
+        const currentHour = drum.items[drum.idx % drum.items.length];
+        const newItems    = this._hoursForPeriod(period);
+        const kept        = newItems.indexOf(currentHour);
+
+        drum.items = newItems;
+
+        // Si la hora seleccionada no está en la nueva lista, usar la primera
+        const baseIdx = kept >= 0 ? kept : 0;
+        drum.idx      = HALF * newItems.length + baseIdx;
+
+        // Reconstruir el DOM interno sin quitar los event listeners
+        const inner = drum._inner;
+        inner.style.transition = 'none';
+
+        // Limpiar y volver a llenar (preservar nodos de padding)
+        inner.innerHTML = '';
+        for (let i = 0; i < PAD; i++) { const e = document.createElement('div'); e.className='drum-item'; inner.appendChild(e); }
+        const total = newItems.length * REPEATS;
+        for (let i = 0; i < total; i++) {
+            const e = document.createElement('div');
+            e.className = 'drum-item';
+            e.textContent = newItems[i % newItems.length];
+            inner.appendChild(e);
+        }
+        for (let i = 0; i < PAD; i++) { const e = document.createElement('div'); e.className='drum-item'; inner.appendChild(e); }
+
+        drum._total = total;
+        inner.style.transform = `translateY(${-drum.idx * ITEM_H}px)`;
+        this._updateDrumClasses(drum);
+    }
+
+    /** Refresca clases active/near sin mover posición */
+    _updateDrumClasses(drum) {
+        const PAD = drum.PAD || 2;
+        drum._inner.querySelectorAll('.drum-item').forEach((el, i) => {
+            const di = i - PAD;
+            el.classList.remove('active','near');
+            if (di === drum.idx) el.classList.add('active');
+            else if (Math.abs(di - drum.idx) === 1) el.classList.add('near');
+        });
+    }
+
+    _snapDrum(drum) {
+        const ITEM_H  = drum.ITEM_H  || 52;
+        const len     = drum.items.length;
+        const REPEATS = drum.loop === false ? 1 : (drum.REPEATS || 7);
+        const total   = drum._total  || len * REPEATS;
+
+        // Clamp (siempre)
+        drum.idx = Math.max(0, Math.min(total - 1, drum.idx));
+
+        // Teleport infinito sólo para drums con loop=true
+        if (drum.loop !== false && (drum.idx < len || drum.idx >= total - len)) {
+            const mod = ((drum.idx % len) + len) % len;
+            drum.idx  = Math.floor(REPEATS / 2) * len + mod;
+            drum._inner.style.transition = 'none';
+            drum._inner.style.transform  = `translateY(${-drum.idx * ITEM_H}px)`;
+            drum._inner.getBoundingClientRect(); // forzar reflow
+        }
+
+        drum._inner.style.transition = 'transform .18s cubic-bezier(.25,.46,.45,.94)';
+        drum._inner.style.transform  = `translateY(${-drum.idx * ITEM_H}px)`;
+        this._updateDrumClasses(drum);
+
+        // Cuando cambia el período, reconstruir las horas disponibles
+        if (drum === this._drumDefs?.period) {
+            const selectedPeriod = drum.items[drum.idx % drum.items.length];
+            this._rebuildHourDrum(selectedPeriod);
+        }
+    }
+
+    _initDrumDrag(drum) {
+        const ITEM_H  = drum.ITEM_H  || 52;
+        let startY = 0, startIdx = 0, dragging = false;
+
+        const onStart = y => { dragging=true; startY=y; startIdx=drum.idx; drum._inner.style.transition='none'; };
+        const onMove  = y => {
+            if (!dragging) return;
+            const total = drum._total || drum.items.length;
+            drum.idx = Math.max(0, Math.min(total - 1, startIdx + Math.round((startY - y) / ITEM_H)));
+            drum._inner.style.transform = `translateY(${-drum.idx * ITEM_H}px)`;
+            this._updateDrumClasses(drum);
+        };
+        const onEnd = () => { if (!dragging) return; dragging=false; this._snapDrum(drum); };
+
+        drum.el.addEventListener('mousedown',  e => { e.preventDefault(); onStart(e.clientY); });
+        window.addEventListener('mousemove',   e => onMove(e.clientY));
+        window.addEventListener('mouseup',     onEnd);
+        drum.el.addEventListener('touchstart', e => onStart(e.touches[0].clientY), {passive:true});
+        drum.el.addEventListener('touchmove',  e => { onMove(e.touches[0].clientY); e.preventDefault(); }, {passive:false});
+        drum.el.addEventListener('touchend',   onEnd);
+        drum.el.addEventListener('wheel', e => {
+            e.preventDefault();
+            const total = drum._total || drum.items.length;
+            drum.idx = Math.max(0, Math.min(total - 1, drum.idx + (e.deltaY > 0 ? 1 : -1)));
+            this._snapDrum(drum);
+        }, {passive:false});
+    }
+
+    _syncDrumValues() {
+        if (!this._drumDefs) return;
+        const mod = (def) => def.items[def.idx % def.items.length];
+        this._drumH = mod(this._drumDefs.hour);
+        this._drumM = mod(this._drumDefs.min);
+        this._drumP = mod(this._drumDefs.period);
+    }
+
     _bindEvents() {
+
         const sr = this.shadowRoot;
 
         // Botón X
@@ -866,8 +1500,89 @@ class ReservaComponent extends HTMLElement {
         });
 
         // Tecla Escape
-        this._onKeydown = (e) => { if (e.key === 'Escape') this.close(); };
+        this._onKeydown = (e) => {
+            if (e.key !== 'Escape') return;
+            if (sr.getElementById('overlayHora').classList.contains('open')) { sr.getElementById('overlayHora').classList.remove('open'); return; }
+            if (sr.getElementById('overlayDia').classList.contains('open'))  { sr.getElementById('overlayDia').classList.remove('open');  return; }
+            this.close();
+        };
         document.addEventListener('keydown', this._onKeydown);
+
+        // ─── HORARIO: Botón trigger ───
+        sr.getElementById('btnHorario').addEventListener('click', async () => {
+            // Pre-cargar días completos del mes actual según barbero seleccionado
+            const barbero = sr.querySelector('input[name="barbero"]:checked')?.value || '';
+            await this._fetchDiasCompletos(barbero, this._calYear || new Date().getFullYear(),
+                this._calMonth !== undefined ? this._calMonth : new Date().getMonth());
+            this._buildCalendar();
+            sr.getElementById('overlayDia').classList.add('open');
+        });
+
+        // ─── MODAL DÍA: cerrar ───
+        sr.getElementById('closeDia').addEventListener('click', () => sr.getElementById('overlayDia').classList.remove('open'));
+        sr.getElementById('overlayDia').addEventListener('click', e => { if (e.target === sr.getElementById('overlayDia')) sr.getElementById('overlayDia').classList.remove('open'); });
+
+        // ─── MODAL DÍA: navegar meses ───
+        sr.getElementById('calPrev').addEventListener('click', async () => {
+            if (this._calMonth === 0) { this._calMonth = 11; this._calYear--; }
+            else this._calMonth--;
+            const barberoPrev = sr.querySelector('input[name="barbero"]:checked')?.value || '';
+            await this._fetchDiasCompletos(barberoPrev, this._calYear, this._calMonth);
+            this._buildCalendar();
+        });
+        sr.getElementById('calNext').addEventListener('click', async () => {
+            if (this._calMonth === 11) { this._calMonth = 0; this._calYear++; }
+            else this._calMonth++;
+            const barberoNext = sr.querySelector('input[name="barbero"]:checked')?.value || '';
+            await this._fetchDiasCompletos(barberoNext, this._calYear, this._calMonth);
+            this._buildCalendar();
+        });
+
+        // ─── MODAL DÍA: continuar a Hora ───
+        sr.getElementById('btnContinuarHora').addEventListener('click', async () => {
+            sr.getElementById('overlayDia').classList.remove('open');
+
+            // Obtener barbero y fecha seleccionados
+            const barbero = sr.querySelector('input[name="barbero"]:checked')?.value || '';
+            const d = this._selectedDay;
+            if (barbero && d) {
+                const fechaISO = `${d.y}-${String(d.m+1).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
+                await this._fetchSlotsOcupados(barbero, fechaISO);
+            } else {
+                this._slotsOcupados = [];
+            }
+
+            // Renderizar grilla (todos los slots, ocupados en rojo)
+            this._buildTimeSlots();
+
+            sr.getElementById('overlayHora').classList.add('open');
+        });
+
+        // ─── MODAL HORA: cerrar ───
+        sr.getElementById('closeHora').addEventListener('click', () => sr.getElementById('overlayHora').classList.remove('open'));
+        sr.getElementById('overlayHora').addEventListener('click', e => { if (e.target === sr.getElementById('overlayHora')) sr.getElementById('overlayHora').classList.remove('open'); });
+
+        // ─── MODAL HORA: confirmar ───
+        sr.getElementById('btnConfirmarHora').addEventListener('click', () => {
+            const slot24 = this._selectedSlot24;
+            if (!slot24) return;
+
+            sr.getElementById('overlayHora').classList.remove('open');
+
+            // Actualizar botón trigger con la selección
+            const d      = this._selectedDay;
+            const DAYS   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+            const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+            const dow    = new Date(d.y, d.m, d.d).getDay();
+            const horaLabel = this._slot24ToLabel(slot24);
+            const label  = `${DAYS[dow]} ${d.d} ${MONTHS[d.m]} · ${horaLabel}`;
+            sr.getElementById('horarioLabel').textContent = label;
+            sr.getElementById('btnHorario').classList.add('done');
+
+            // Guardar para submit
+            const fechaISO = `${d.y}-${String(d.m+1).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
+            this._horarioData = { day: d, label, fecha: fechaISO, hora: horaLabel, slot24 };
+        });
 
         // Cambio de método de pago → mostrar panel dinámico
         sr.querySelectorAll('input[name="metodoPago"]').forEach(radio => {
@@ -903,21 +1618,25 @@ class ReservaComponent extends HTMLElement {
             this._actualizarBtnPago(metodo);
         });
 
-        // PASO 1 → PASO 2: validar formulario y mostrar cobro
-        sr.getElementById('formCita').addEventListener('submit', (e) => {
+        // PASO 1 → PASO 2: validar formulario (+ re-validar conflicto) y mostrar cobro
+        sr.getElementById('formCita').addEventListener('submit', async (e) => {
             e.preventDefault();
             const msg = sr.getElementById('mensajeCita');
             const nombre = sr.getElementById('nombreCliente').value.trim();
             const servSel = sr.getElementById('servicio');
             const servicioVal = servSel.value;
             const servicio = servicioVal ? servSel.options[servSel.selectedIndex].text : '';
-            const hora = sr.getElementById('hora').value;
-            const fecha = sr.getElementById('fechaCita').value;
             const barbero = sr.querySelector('input[name="barbero"]:checked')?.value || '';
+            const horario = this._horarioData;
 
-            if (!nombre || !servicioVal || !hora || !fecha) {
+            if (!nombre || !servicioVal) {
                 msg.className = 'mensaje-cita error';
-                msg.textContent = '⚠️ Todos los campos son obligatorios.';
+                msg.textContent = '⚠️ Completa tu nombre y selecciona un servicio.';
+                return;
+            }
+            if (!horario) {
+                msg.className = 'mensaje-cita error';
+                msg.textContent = '⚠️ Por favor selecciona un horario.';
                 return;
             }
             if (!barbero) {
@@ -926,7 +1645,43 @@ class ReservaComponent extends HTMLElement {
                 return;
             }
 
-            this._datosCita = { nombre, servicio, servicioVal, hora, fecha, barbero };
+            // ── Re-validación de conflicto en el submit ──────────────────
+            // Necesaria si el usuario cambia el barbero después de elegir hora.
+            msg.className = 'mensaje-cita';
+            msg.textContent = '';
+
+            // Convertir la hora guardada (ej. '12:30 PM') a 24h para comparar
+            const horaGuardada = horario.hora; // '12:30 PM'
+            const [timePart, period] = horaGuardada.split(' ');
+            const [hStr, mStr] = timePart.split(':');
+            let h = parseInt(hStr, 10);
+            const m = mStr;
+            if (period === 'PM' && h !== 12) h += 12;
+            if (period === 'AM' && h === 12) h = 0;
+            const slot24Submit = `${String(h).padStart(2,'0')}:${m}`;
+
+            // Volver a consultar (por si cambió el barbero)
+            await this._fetchSlotsOcupados(barbero, horario.fecha);
+            const ocupadosSubmit = this._slotsOcupados || [];
+
+            if (ocupadosSubmit.includes(slot24Submit)) {
+                const siguiente = this._findNextSlot(slot24Submit, ocupadosSubmit);
+                let errMsg = `⛔ El horario ${horaGuardada} no está disponible con ${barbero}.`;
+                if (siguiente) {
+                    errMsg += ` Próximo libre: ${this._slot24ToLabel(siguiente)}.`;
+                }
+                msg.className = 'mensaje-cita error';
+                msg.textContent = errMsg;
+                return;
+            }
+            // ────────────────────────────────────────────────────────────
+
+            this._datosCita = {
+                nombre, servicio, servicioVal,
+                hora:   horario.hora,
+                fecha:  horario.fecha,
+                barbero
+            };
             this._irAPaso2(this._datosCita);
         });
 

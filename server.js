@@ -6,6 +6,8 @@ const authRoutes = require("./proyect/routers/authRoutes");
 const citasRoutes = require("./proyect/routers/citasRoutes");
 const cortesRoutes = require("./proyect/routers/cortesRoutes");
 const usersRoutes  = require("./proyect/routers/usersRoutes");
+const contactosRoutes = require("./proyect/routers/contactosRoutes");
+const barberosRoutes = require("./proyect/routers/barberosRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -25,6 +27,8 @@ app.use("/api", authRoutes);   // POST /api/registro  |  POST /api/login
 app.use("/api/citas", citasRoutes);  // POST /api/citas/agendar | GET /api/citas/miscitas | GET /api/citas/mis-citas
 app.use("/api", cortesRoutes); // GET /api/cortes | POST /api/cortes | PUT /api/cortes/:id | DELETE /api/cortes/:id
 app.use("/api", usersRoutes);  // GET /api/usuarios | PUT /api/usuarios/:id/role
+app.use("/api", contactosRoutes); // POST /api/contacto
+app.use("/api", barberosRoutes); // GET /api/barberos/publico | CRUD /api/barberos
 
 // ─── 404 catch-all ───────────────────────────────────────────────────────────
 app.use((req, res) => {

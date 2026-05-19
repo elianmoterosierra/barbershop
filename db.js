@@ -182,3 +182,4 @@ async function getConnection() {
 
 // ─── Exportar ────────────────────────────────────────────────────────────────
 module.exports = { getConnection, sql };
+//dasdadadaass

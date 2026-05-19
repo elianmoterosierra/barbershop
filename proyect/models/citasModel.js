@@ -197,15 +197,94 @@ async function guardarCalificacion(id_cita, calificacion, resena) {
             WHERE id = @id
         `);
 }
+/**
+ * Obtiene todas las citas asignadas a un barbero específico (por nombre),
+ * ordenadas por fecha/hora ascendente. Excluye las canceladas.
+ * @param {string} nombreBarbero - Nombre exacto del barbero tal como se guardó
+ * @returns {Array<{id,nombre_cliente,fecha,hora,servicio,status}>}
+ */
+async function getCitasDeBarbero(nombreBarbero) {
+    const pool = await getConnection();
+    const result = await pool.request()
+        .input("barbero", sql.VarChar, nombreBarbero)
+        .query(`
+            SELECT
+                c.id,
+                u.name  AS nombre_cliente,
+                CONVERT(VARCHAR(10), c.date, 120) AS fecha,
+                CONVERT(VARCHAR(5),  c.time, 108) AS hora,
+                c.service AS servicio,
+                c.status
+            FROM Citas c
+            JOIN Users u ON u.id = c.id_usuario
+            WHERE c.barbero = @barbero
+              AND c.status != 'cancelada'
+            ORDER BY c.date ASC, c.time ASC
+        `);
+    return result.recordset;
+}
 
-module.exports = { 
-    crearCita, 
-    getMisCitas, 
-    getCitasPorUsuario, 
+
+/**
+ * Obtiene los horarios ocupados de un barbero en una fecha dada.
+ * Solo considera citas PENDIENTES — las canceladas y completadas liberan su slot.
+ * @param {string} barbero - Nombre exacto del barbero
+ * @param {string} fecha   - Fecha en formato YYYY-MM-DD
+ * @returns {string[]} Array de strings 'HH:MM' (formato 24h)
+ */
+async function getSlotsOcupadosPorBarbero(barbero, fecha) {
+    const pool = await getConnection();
+    const result = await pool.request()
+        .input("barbero", sql.VarChar, barbero)
+        .input("fecha",   sql.Date,    fecha)
+        .query(`
+            SELECT CONVERT(VARCHAR(5), time, 108) AS hora
+            FROM Citas
+            WHERE barbero = @barbero
+              AND date    = @fecha
+              AND status  = 'pendiente'
+        `);
+    return result.recordset.map(r => r.hora); // e.g. ['09:00','12:30']
+}
+
+/**
+ * Obtiene los días del mes en que el barbero tiene TODOS los slots ocupados
+ * (07:00 – 19:00 en bloques de 30 min = 25 slots en total).
+ * Solo considera citas PENDIENTES — las canceladas y completadas liberan su día.
+ * @param {string} barbero
+ * @param {string} inicio   - 'YYYY-MM-DD' primer día del rango
+ * @param {string} fin      - 'YYYY-MM-DD' último día del rango
+ * @returns {string[]}  Array de fechas 'YYYY-MM-DD' completamente ocupadas
+ */
+async function getDiasCompletosDelMes(barbero, inicio, fin) {
+    const pool = await getConnection();
+    const result = await pool.request()
+        .input("barbero", sql.VarChar, barbero)
+        .input("inicio",  sql.Date,    inicio)
+        .input("fin",     sql.Date,    fin)
+        .query(`
+            SELECT CONVERT(VARCHAR(10), date, 120) AS fecha
+            FROM Citas
+            WHERE barbero = @barbero
+              AND date BETWEEN @inicio AND @fin
+              AND status  = 'pendiente'
+            GROUP BY date
+            HAVING COUNT(DISTINCT CONVERT(VARCHAR(5), time, 108)) >= 25
+        `);
+    return result.recordset.map(r => r.fecha); // ['YYYY-MM-DD', ...]
+}
+
+module.exports = {
+    crearCita,
+    getMisCitas,
+    getCitasPorUsuario,
     getAllCitas,
     actualizarEstadoCita,
     cancelarCita,
     getCitaPorId,
     guardarCalificacion,
-    getCitasPorBarbero
+    getCitasPorBarbero,
+    getSlotsOcupadosPorBarbero,
+    getDiasCompletosDelMes,
+    getCitasDeBarbero
 };

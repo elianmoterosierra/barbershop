@@ -36,6 +36,7 @@
             <a href="services.html">Servicios</a>
             <a href="nosotros.html">Nosotros</a>
             <a href="#" onclick="abrirMisCitas(event)">Mis Citas</a>
+            <a href="#" onclick="abrirModal(event)">Mi Perfil</a>
         </nav>
         <button class="hamburger" aria-label="Abrir menú">
             <span></span><span></span><span></span>
@@ -55,20 +56,24 @@
         <section class="container-box">
             <div class="caja-contacto glass-card" data-reveal="left">
                 <h3>Escríbenos</h3>
-                <form>
+                <form id="formContacto">
                     <div class="campo">
-                        <label>Tu nombre completo</label>
-                        <input type="text" placeholder="Ej. Pedro Picapiedra">
+                        <label>Tu nombre completo *</label>
+                        <input type="text" id="contactoNombre" placeholder="Ej. Pedro Picapiedra" maxlength="100">
+                        <span class="campo-err" id="errCNombre"></span>
                     </div>
                     <div class="campo">
-                        <label>Correo electrónico</label>
-                        <input type="email" placeholder="nombre@correo.com">
+                        <label>Correo electrónico *</label>
+                        <input type="text" id="contactoEmail" placeholder="nombre@correo.com" maxlength="100">
+                        <span class="campo-err" id="errCEmail"></span>
                     </div>
                     <div class="campo">
-                        <label>¿Cómo podemos ayudarte?</label>
-                        <textarea rows="4" placeholder="Cuéntanos qué servicio buscas..."></textarea>
+                        <label>¿Cómo podemos ayudarte? *</label>
+                        <textarea id="contactoMensaje" rows="4" placeholder="Cuéntanos qué servicio buscas..." maxlength="1000"></textarea>
+                        <span class="campo-err" id="errCMensaje"></span>
                     </div>
-                    <button type="button" class="btn-primary" style="width: 100%;">Enviar Mensaje</button>
+                    <div id="contactoNotificacion" style="display: none; padding: 10px; border-radius: 8px; font-family: 'Manrope', sans-serif; font-size: 0.9rem; margin-bottom: 10px; text-align: center;"></div>
+                    <button type="button" id="btnEnviarContacto" class="btn-primary" style="width: 100%;">Enviar Mensaje</button>
                 </form>
             </div>
 
@@ -162,6 +167,7 @@
     <admin-cortes-component id="modalAdminCortes"></admin-cortes-component>
     <admin-users-component id="modalAdminUsers"></admin-users-component>
     <admin-citas-component id="modalAdminCitas"></admin-citas-component>
+    <admin-barberos-component id="modalAdminBarberos"></admin-barberos-component>
     <calificar-citas id="modalCalificar"></calificar-citas>
     <mis-citas-component id="modalMisCitas"></mis-citas-component>
 
@@ -174,6 +180,9 @@
     </button>
     <button class="admin-fab admin-fab-citas" id="btnAdminCitas" style="display:none;" onclick="abrirAdminCitas()">
         📋 Gestionar Citas
+    </button>
+    <button class="admin-fab admin-fab-barberos" id="btnAdminBarberos" style="display:none;" onclick="abrirAdminBarberos()">
+        ✂️ Gestionar Barberos
     </button>
 
     <style>
@@ -206,6 +215,9 @@
         .admin-fab-citas {
             bottom: 150px;
         }
+        .admin-fab-barberos {
+            bottom: 210px;
+        }
     </style>
 
     <!-- Scripts -->
@@ -214,9 +226,10 @@
     <script defer src="../js/admin-cortes-component.js"></script>
     <script defer src="../js/admin-users-component.js"></script>
     <script defer src="../js/admin-citas-component.js"></script>
+    <script defer src="../js/admin-barberos-component.js"></script>
     <script defer src="../js/calificar-citas.js"></script>
     <script defer src="../js/mis-citas-component.js"></script>
-    <script defer src="../js/animations.js"></script> <!-- AÑADIDO ANIMATIONS.JS -->
+    <script defer src="../js/animations.js"></script>
 
     <script>
         function abrirModal(e) {
@@ -239,6 +252,10 @@
             const el = document.getElementById('modalAdminCitas');
             if(el) el.open();
         }
+        function abrirAdminBarberos() {
+            const el = document.getElementById('modalAdminBarberos');
+            if(el) el.open();
+        }
         function abrirMisCitas(e) {
             if (e) e.preventDefault();
             document.getElementById('modalMisCitas').open();
@@ -257,24 +274,108 @@
             document.addEventListener('abrir-mis-citas', () => {
                 document.getElementById('modalMisCitas').open();
             });
+
+            // Enviar formulario de contacto
+            const formContacto = document.getElementById('formContacto');
+            if (formContacto) {
+                // Estilos de error inline
+                const errStyle = 'display:block;font-size:.72rem;color:#f87171;font-family:Manrope,sans-serif;font-weight:600;margin-top:3px;';
+
+                function setFieldErr(inputId, errId, msg) {
+                    const inp = document.getElementById(inputId);
+                    const err = document.getElementById(errId);
+                    if (inp) inp.style.borderColor = 'rgba(239,68,68,0.7)';
+                    if (err) { err.textContent = msg; err.setAttribute('style', errStyle); }
+                }
+                function clearFieldErr(inputId, errId) {
+                    const inp = document.getElementById(inputId);
+                    const err = document.getElementById(errId);
+                    if (inp) inp.style.borderColor = '';
+                    if (err) { err.textContent = ''; err.setAttribute('style', 'display:none'); }
+                }
+                function clearAllErrors() {
+                    ['contactoNombre','contactoEmail','contactoMensaje'].forEach((id,i) =>
+                        clearFieldErr(id, ['errCNombre','errCEmail','errCMensaje'][i])
+                    );
+                }
+
+                document.getElementById('btnEnviarContacto').addEventListener('click', async () => {
+                    const btn = document.getElementById('btnEnviarContacto');
+                    const notificacion = document.getElementById('contactoNotificacion');
+                    const nombre  = document.getElementById('contactoNombre').value.trim();
+                    const email   = document.getElementById('contactoEmail').value.trim();
+                    const mensaje = document.getElementById('contactoMensaje').value.trim();
+
+                    clearAllErrors();
+                    notificacion.style.display = 'none';
+
+                    // ─ Validaciones ─
+                    let valid = true;
+                    if (!nombre) { setFieldErr('contactoNombre','errCNombre','⚠️ El nombre es obligatorio.'); valid=false; }
+                    else if (nombre.length < 2) { setFieldErr('contactoNombre','errCNombre','⚠️ Mínimo 2 caracteres.'); valid=false; }
+
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!email) { setFieldErr('contactoEmail','errCEmail','⚠️ El correo es obligatorio.'); valid=false; }
+                    else if (!emailRegex.test(email)) { setFieldErr('contactoEmail','errCEmail','⚠️ Correo inválido. Debe contener @ y un dominio.'); valid=false; }
+
+                    if (!mensaje) { setFieldErr('contactoMensaje','errCMensaje','⚠️ El mensaje es obligatorio.'); valid=false; }
+                    else if (mensaje.length < 10) { setFieldErr('contactoMensaje','errCMensaje','⚠️ Mínimo 10 caracteres en el mensaje.'); valid=false; }
+
+                    if (!valid) return;
+
+                    btn.disabled = true;
+                    btn.textContent = 'Enviando...';
+
+                    try {
+                        const res = await fetch('/api/contacto', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ nombre, email, mensaje })
+                        });
+                        const data = await res.json();
+                        notificacion.style.display = 'block';
+                        if (data.ok) {
+                            notificacion.style.cssText = 'display:block;padding:10px;border-radius:8px;font-family:Manrope,sans-serif;font-size:.9rem;text-align:center;background:rgba(52,211,153,.1);color:#6ee7b7;border:1px solid rgba(52,211,153,.3);';
+                            notificacion.textContent = '✅ ¡Mensaje enviado con éxito! Te contactaremos pronto.';
+                            formContacto.reset(); clearAllErrors();
+                        } else {
+                            notificacion.style.cssText = 'display:block;padding:10px;border-radius:8px;font-family:Manrope,sans-serif;font-size:.9rem;text-align:center;background:rgba(239,68,68,.1);color:#fca5a5;border:1px solid rgba(239,68,68,.3);';
+                            notificacion.textContent = '❌ ' + (data.error || 'Error al enviar el mensaje.');
+                        }
+                    } catch {
+                        notificacion.style.cssText = 'display:block;padding:10px;border-radius:8px;font-family:Manrope,sans-serif;font-size:.9rem;text-align:center;background:rgba(239,68,68,.1);color:#fca5a5;border:1px solid rgba(239,68,68,.3);';
+                        notificacion.textContent = '❌ Error de conexión con el servidor.';
+                    } finally {
+                        btn.disabled = false;
+                        btn.textContent = 'Enviar Mensaje';
+                    }
+                });
+            }
         });
 
-        // ── Mostrar/ocultar botones admin según rol ──
+        // ── Mostrar/ocultar botones según rol ──
         function checkAdminVisibility() {
             try {
-                const user    = JSON.parse(localStorage.getItem('zhola_user'));
-                const isAdmin = user && user.role === 'admin';
-                const display = isAdmin ? 'block' : 'none';
-                ['btnAdminCortes','btnAdminUsers','btnAdminCitas'].forEach(id => {
+                const user      = JSON.parse(localStorage.getItem('zhola_user'));
+                const isAdmin   = user && user.role === 'admin';
+                const isBarbero = user && user.role === 'barbero';
+                const display   = isAdmin ? 'block' : 'none';
+                ['btnAdminCortes','btnAdminUsers','btnAdminCitas','btnAdminBarberos'].forEach(id => {
                     const el = document.getElementById(id);
                     if (el) el.style.display = display;
                 });
+                const btnB = document.getElementById('btnBarberoPanel');
+                if (btnB) btnB.style.display = isBarbero ? 'block' : 'none';
             } catch(e) {
-                ['btnAdminCortes','btnAdminUsers','btnAdminCitas'].forEach(id => {
+                ['btnAdminCortes','btnAdminUsers','btnAdminCitas','btnAdminBarberos','btnBarberoPanel'].forEach(id => {
                     const el = document.getElementById(id);
                     if (el) el.style.display = 'none';
                 });
             }
+        }
+
+        function abrirPanelBarbero() {
+            document.getElementById('modalBarberoPanel').open();
         }
 
         // Revisar al cargar
@@ -294,6 +395,14 @@
             console.log('Editar perfil');
         });
     </script>
+
+    <!-- Barbero panel component -->
+    <barbero-panel-component id="modalBarberoPanel"></barbero-panel-component>
+
+    <!-- Barbero floating button -->
+    <button id="btnBarberoPanel" style="display:none;position:fixed;bottom:30px;right:30px;z-index:900;padding:14px 28px;background:linear-gradient(135deg,#63b3ed,#2b6cb0);color:#fff;border:none;border-radius:50px;font-family:'Manrope',sans-serif;font-size:.95rem;font-weight:800;cursor:pointer;box-shadow:0 8px 32px rgba(99,179,237,0.3);transition:transform .2s,box-shadow .2s;letter-spacing:.02em;" onclick="abrirPanelBarbero()">✂️ Mi Panel</button>
+
+    <script defer src="../js/barbero-panel-component.js"></script>
 </body>
 
 </html>

@@ -346,16 +346,47 @@ class AdminCortesComponent extends HTMLElement {
     async _guardarCorte() {
         const sr = this.shadowRoot;
         const msg = sr.getElementById('msgForm');
-        const nombre = sr.getElementById('nombre').value.trim();
-        const tipo = sr.getElementById('tipo').value;
-        const precio = sr.getElementById('precio').value;
+        const nombre     = sr.getElementById('nombre').value.trim();
+        const tipo       = sr.getElementById('tipo').value;
+        const precio     = sr.getElementById('precio').value;
         const descripcion = sr.getElementById('descripcion').value.trim();
-        const foto_url = sr.getElementById('fotoUrl').value.trim();
-        const token = localStorage.getItem('token');
+        const foto_url   = sr.getElementById('fotoUrl').value.trim();
+        const token      = localStorage.getItem('token');
 
-        if (!nombre || !precio) {
+        // ── Reset estilos previos ──
+        ['nombre','precio','descripcion','fotoUrl'].forEach(id => {
+            const el = sr.getElementById(id);
+            if (el) { el.style.borderColor = ''; el.style.background = ''; }
+        });
+        msg.className = 'mensaje';
+        msg.textContent = '';
+
+        // ── Validar todos los campos ──
+        let errores = [];
+
+        if (!nombre) errores.push('✂️ El nombre del servicio es obligatorio.');
+        else if (nombre.length < 2) errores.push('✂️ El nombre debe tener al menos 2 caracteres.');
+
+        if (!precio || isNaN(precio) || Number(precio) <= 0)
+            errores.push('💰 El precio es obligatorio y debe ser mayor a 0.');
+
+        if (!descripcion) errores.push('📝 La descripción es obligatoria.');
+        else if (descripcion.length < 5) errores.push('📝 La descripción debe tener al menos 5 caracteres.');
+
+        // Foto solo obligatoria en servicios normales
+        if (tipo !== 'vip' && !foto_url)
+            errores.push('📷 La URL de la foto es obligatoria para servicios normales.');
+        else if (tipo !== 'vip' && foto_url && !/^https?:\/\/.+/.test(foto_url))
+            errores.push('📷 La URL de la foto no es válida (debe empezar con http:// o https://).');
+
+        if (errores.length > 0) {
             msg.className = 'mensaje error';
-            msg.textContent = '⚠️ Nombre y precio son obligatorios.';
+            msg.innerHTML = errores.join('<br>');
+            // Resaltar campos con error
+            if (!nombre)                                { const el = sr.getElementById('nombre');     if(el) el.style.borderColor='rgba(239,68,68,0.7)'; }
+            if (!precio || Number(precio) <= 0)         { const el = sr.getElementById('precio');     if(el) el.style.borderColor='rgba(239,68,68,0.7)'; }
+            if (!descripcion)                           { const el = sr.getElementById('descripcion');if(el) el.style.borderColor='rgba(239,68,68,0.7)'; }
+            if (tipo !== 'vip' && !foto_url)            { const el = sr.getElementById('fotoUrl');   if(el) el.style.borderColor='rgba(239,68,68,0.7)'; }
             return;
         }
 

@@ -1,6 +1,6 @@
 # ✂️ Classic Barbershop
 
-Aplicación web completa para una barbería premium. Incluye landing page con sistema de reservas de citas, autenticación de usuarios (registro/login con JWT) y panel de perfil personal.
+Aplicación web completa para una barbería premium. Incluye landing page con sistema de reservas de citas, autenticación de usuarios (registro/login con JWT), sistema de calificaciones y panel administrativo.
 
 ---
 
@@ -12,7 +12,7 @@ Aplicación web completa para una barbería premium. Incluye landing page con si
 | **Backend** | Node.js + Express v5 |
 | **Base de datos** | Microsoft SQL Server (via `mssql` + `msnodesqlv8`) |
 | **Autenticación** | JSON Web Tokens (`jsonwebtoken`) + `bcryptjs` |
-| **Tipografías** | Playfair Display, Manrope (Google Fonts) |
+| **Integraciones** | n8n (Webhooks para notificaciones de registros y citas) |
 
 ---
 
@@ -20,178 +20,97 @@ Aplicación web completa para una barbería premium. Incluye landing page con si
 
 ```
 barbershop/
-├── .env                        # Variables de entorno (NO subir a git)
-├── .env.example                # Plantilla de variables de entorno
-├── .gitignore
+├── .env                        # Variables de entorno
 ├── db.js                       # Conexión a SQL Server (singleton)
 ├── server.js                   # Entrada del servidor Express
 ├── package.json
-├── toda mi base de datos.sql   # Esquema y datos de la base de datos
 │
 └── proyect/
     ├── controllers/
-    │   ├── authController.js   # Lógica de registro y login
-    │   └── citasController.js  # Lógica de agendar y ver citas
-    │
-    ├── middleware/
-    │   └── verificartoken.js   # Validación de JWT
+    │   ├── authController.js       # Lógica de registro y login + Webhook n8n
+    │   ├── citasController.js      # Gestión de citas + Calificaciones + Webhook n8n
+    │   ├── cortesController.js     # CRUD de servicios/cortes
+    │   └── usersAdminController.js # Gestión de usuarios y roles
     │
     ├── models/
-    │   ├── userModel.js        # Queries de la tabla Users
-    │   └── citasModel.js       # Queries de la tabla Citas
+    │   ├── userModel.js            # Consultas tabla Users
+    │   ├── citasModel.js           # Consultas tabla Citas y Calificaciones
+    │   └── cortesModel.js          # Consultas tabla Cortes
     │
     ├── routers/
-    │   ├── authRoutes.js       # Rutas /api/registro y /api/login
-    │   └── citasRoutes.js      # Rutas /api/agendar y /api/miscitas
+    │   ├── authRoutes.js           # Rutas /api/registro y /api/login
+    │   ├── citasRoutes.js          # Rutas /api/citas/*
+    │   ├── cortesRoutes.js         # Rutas /api/cortes/*
+    │   └── usersRoutes.js          # Rutas /api/usuarios/*
     │
     └── public/
         ├── css/
-        │   ├── global.css      # Sistema de diseño global (tokens, header, footer, animaciones)
-        │   ├── style.css       # Estilos específicos del index
-        │   ├── services.css    # Estilos de la página de servicios
-        │   ├── nosotros.css    # Estilos de la página nosotros
-        │   └── contacto.css    # Estilos de la página de contacto
+        │   ├── global.css          # Diseño global, header, footer y animaciones
+        │   └── ...                 # Estilos por sección
         │
         ├── js/
-        │   ├── animations.js           # Scroll reveal, hamburger menu, smooth scroll
-        │   ├── perfil-component.js     # Web Component: modal de perfil/login/registro
-        │   └── reserva-component.js    # Web Component: modal de reserva de citas
+        │   ├── admin-panel-component.js # Panel unificado para administración
+        │   ├── mis-citas-component.js   # Historial y calificación de citas
+        │   ├── perfil-component.js      # Modal de usuario y login
+        │   └── reserva-component.js     # Sistema de agendamiento
         │
         └── src/
-            ├── index.html      # Página principal (hero, servicios, testimonios)
-            ├── services.html   # Página de servicios detallada
-            ├── nosotros.html   # Página de equipo y valores
-            └── contacto.html   # Página de contacto
-```
-
----
-
-## ⚙️ Instalación y configuración
-
-### 1. Clonar el repositorio
-
-```bash
-git clone <url-del-repositorio>
-cd barbershop
-```
-
-### 2. Instalar dependencias
-
-```bash
-npm install
-```
-
-### 3. Configurar variables de entorno
-
-Copia el archivo de ejemplo y rellena tus valores:
-
-```bash
-cp .env.example .env
-```
-
-Edita `.env`:
-
-```env
-DB_SERVER=TU_SERVIDOR\INSTANCIA   # Ej: DESKTOP-AAHT4C4\HOLA
-DB_NAME=barberia
-JWT_SECRET=una_clave_secreta_larga_y_segura
-PORT=3000
-```
-
-### 4. Configurar la base de datos
-
-Ejecuta el archivo SQL en tu instancia de SQL Server:
-
-```bash
-# Desde SQL Server Management Studio:
-# Archivo → Abrir → "toda mi base de datos.sql"
-```
-
----
-
-## 🚀 Correr el proyecto
-
-### Modo desarrollo (con auto-reload)
-
-```bash
-npm run dev
-```
-
-### Modo producción
-
-```bash
-npm start
-```
-
-El servidor estará disponible en: **http://localhost:3000**
-
-Para ver el frontend, abre directamente en el navegador:
-```
-proyect/public/src/index.html
+            └── index.html               # SPA / Punto de entrada frontend
 ```
 
 ---
 
 ## 🔌 API Endpoints
 
-### Autenticación
-
-| Método | Ruta | Descripción | Auth requerida |
+### 🔐 Autenticación (`/api`)
+| Método | Ruta | Descripción | Auth |
 |---|---|---|---|
 | `POST` | `/api/registro` | Crear cuenta nueva | ❌ |
 | `POST` | `/api/login` | Iniciar sesión | ❌ |
 
-**Body de `/api/registro`:**
-```json
-{
-  "name": "Carlos Mendoza",
-  "email": "carlos@correo.com",
-  "password": "miPassword123"
-}
-```
-
-**Body de `/api/login`:**
-```json
-{
-  "email": "carlos@correo.com",
-  "password": "miPassword123"
-}
-```
-
-### Citas
-
-| Método | Ruta | Descripción | Auth requerida |
+### 📅 Citas (`/api/citas`)
+| Método | Ruta | Descripción | Auth |
 |---|---|---|---|
-| `POST` | `/api/agendar` | Crear nueva cita | ✅ JWT |
-| `GET` | `/api/miscitas` | Ver mis citas | ✅ JWT |
+| `POST` | `/agendar` | Crear nueva cita | ✅ Cliente |
+| `GET` | `/miscitas` | Resumen de citas | ✅ Cliente |
+| `GET` | `/mis-citas` | Listado detallado | ✅ Cliente |
+| `POST` | `/:id/calificar` | Calificar cita terminada | ✅ Cliente |
+| `GET` | `/barbero/:nombre` | Ver reseñas de un barbero | ❌ |
+| `GET` | `/admin/todas` | Listar todas las citas | 🛡️ Admin |
+| `PUT` | `/admin/:id/estado` | Cambiar estado de cita | 🛡️ Admin |
 
-**Header requerido para rutas protegidas:**
-```
-Authorization: <token>
-```
-
-**Body de `/api/agendar`:**
-```json
-{
-  "name": "Carlos Mendoza",
-  "service": "Corte Clásico",
-  "date": "2026-05-15",
-  "time": "10:30:00"
-}
-```
+### ✂️ Servicios y Cortes (`/api/cortes`)
+| Método | Ruta | Descripción | Auth |
+|---|---|---|---|
+| `GET` | `/cortes` | Listar servicios | ❌ |
+| `POST` | `/cortes` | Crear servicio | 🛡️ Admin |
+| `PUT` | `/cortes/:id` | Editar servicio | 🛡️ Admin |
+| `DELETE` | `/cortes/:id` | Eliminar servicio | 🛡️ Admin |
 
 ---
 
-## 🔒 Seguridad
-
-- Las contraseñas se hashean con **bcryptjs** (salt rounds: 10)
-- Los tokens JWT expiran en **24 horas**
-- El `JWT_SECRET` se lee desde variables de entorno (nunca hardcodeado)
-- El archivo `.env` está en `.gitignore` para no exponerse en el repositorio
+## 🤖 Integraciones Externas (n8n)
+El sistema envía notificaciones automáticas a **n8n** en los siguientes eventos:
+1.  **Nuevo Registro:** Notifica al webhook de bienvenida para correos automatizados.
+2.  **Nueva Cita:** Envía todos los detalles de la reserva (cliente, barbero, servicio) para gestión externa.
 
 ---
 
-## 📝 Notas de desarrollo
+## 🛡️ Roles y Seguridad
+*   **Cliente:** Puede agendar, ver sus propias citas y calificar barberos.
+*   **Admin:** Tiene acceso al panel de control para gestionar servicios, cambiar roles de usuarios y actualizar estados de citas.
+*   **Hashing:** Las contraseñas se protegen con `bcryptjs`.
+*   **Tokens:** Sesiones seguras con JWT (duración 24h).
+
+---
+
+## ⚙️ Instalación
+
+1.  **Dependencias:** `npm install`
+2.  **Base de Datos:** Importar `toda mi base de datos.sql` en SQL Server.
+3.  **Variables de Entorno:** Configurar `.env` con las credenciales de DB y `JWT_SECRET`.
+4.  **Ejecutar:** `npm run dev` para desarrollo o `npm start` para producción.
+e desarrollo
 
 - El frontend usa **Web Components nativos** (sin frameworks)
 - El componente `perfil-component.js` maneja login, registro y perfil de usuario en un solo modal

@@ -22,8 +22,8 @@ async function cambiarRol(req, res) {
     const { id } = req.params;
     const { role } = req.body;
 
-    if (!role || !['admin', 'usuario'].includes(role)) {
-        return res.status(400).json({ ok: false, error: "Rol inválido. Usa 'admin' o 'usuario'." });
+    if (!role || !['admin', 'usuario', 'barbero'].includes(role)) {
+        return res.status(400).json({ ok: false, error: "Rol inválido. Usa 'admin', 'barbero' o 'usuario'." });
     }
 
     // No permitir que un admin se quite el rol a sí mismo

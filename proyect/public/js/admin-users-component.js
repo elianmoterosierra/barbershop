@@ -91,7 +91,17 @@ class AdminUsersComponent extends HTMLElement {
             .btn-remove-admin { background:rgba(239,68,68,0.1); color:#fca5a5; border:1px solid rgba(239,68,68,0.25); }
             .btn-remove-admin:hover { background:rgba(239,68,68,0.25); }
 
+            .btn-make-barbero { background:rgba(99,179,237,0.12); color:#90cdf4; border:1px solid rgba(99,179,237,0.25); }
+            .btn-make-barbero:hover { background:rgba(99,179,237,0.25); }
+
+            .btn-remove-barbero { background:rgba(239,68,68,0.1); color:#fca5a5; border:1px solid rgba(239,68,68,0.25); }
+            .btn-remove-barbero:hover { background:rgba(239,68,68,0.25); }
+
+            .role-barbero { background:rgba(99,179,237,0.15); border:1px solid rgba(99,179,237,0.4); color:#90cdf4; }
+
             .btn-self { opacity:0.4; cursor:not-allowed; }
+
+            .actions { display:flex; gap:6px; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end; }
 
             @media(max-width:500px) {
                 .modal-body { padding:20px 18px 24px; }
@@ -147,18 +157,26 @@ class AdminUsersComponent extends HTMLElement {
 
         lista.innerHTML = this._users.map(u => {
             const initials = u.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
-            const isAdmin = u.role === 'admin';
-            const isSelf = u.email === myEmail;
-            const badgeClass = isAdmin ? 'role-admin' : 'role-usuario';
-            const badgeText = isAdmin ? '👑 Admin' : 'Usuario';
+            const isAdmin   = u.role === 'admin';
+            const isBarbero = u.role === 'barbero';
+            const isSelf    = u.email === myEmail;
 
-            let btnHtml = '';
+            const badgeClass = isAdmin ? 'role-admin' : isBarbero ? 'role-barbero' : 'role-usuario';
+            const badgeText  = isAdmin ? '👑 Admin' : isBarbero ? '✂️ Barbero' : 'Usuario';
+
+            let actionsHtml = '';
             if (isSelf) {
-                btnHtml = `<button class="role-toggle btn-self" disabled title="No puedes cambiar tu propio rol">Tú</button>`;
-            } else if (isAdmin) {
-                btnHtml = `<button class="role-toggle btn-remove-admin" data-id="${u.id}" data-role="usuario">Quitar Admin</button>`;
+                actionsHtml = `<button class="role-toggle btn-self" disabled title="No puedes cambiar tu propio rol">Tú</button>`;
             } else {
-                btnHtml = `<button class="role-toggle btn-make-admin" data-id="${u.id}" data-role="admin">Hacer Admin</button>`;
+                // Botón Admin
+                const adminBtn = isAdmin
+                    ? `<button class="role-toggle btn-remove-admin" data-id="${u.id}" data-role="usuario">Quitar Admin</button>`
+                    : `<button class="role-toggle btn-make-admin" data-id="${u.id}" data-role="admin">Hacer Admin</button>`;
+                // Botón Barbero
+                const barberoBtn = isBarbero
+                    ? `<button class="role-toggle btn-remove-barbero" data-id="${u.id}" data-role="usuario">Quitar Barbero</button>`
+                    : `<button class="role-toggle btn-make-barbero" data-id="${u.id}" data-role="barbero">✂️ Barbero</button>`;
+                actionsHtml = `<div class="actions">${adminBtn}${barberoBtn}</div>`;
             }
 
             return `
@@ -169,7 +187,7 @@ class AdminUsersComponent extends HTMLElement {
                         <p class="user-email">${u.email}</p>
                     </div>
                     <span class="role-badge ${badgeClass}">${badgeText}</span>
-                    ${btnHtml}
+                    ${actionsHtml}
                 </div>
             `;
         }).join('');
